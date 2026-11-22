@@ -102,10 +102,11 @@ export function buildDashboard(rawFilters: Record<string, string | undefined>): 
   }
 
   const sampleRounds = matches.reduce((sum, match) => sum + match.scoreUs + match.scoreThem, 0);
+  const demo = matches.every((match) => match.isDemo);
 
   return {
     generatedAt: new Date().toISOString(),
-    demo: true,
+    demo,
     filters,
     sections,
     values,
@@ -128,9 +129,21 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
   const assists = matches.reduce((sum, match) => sum + match.assists, 0);
   const wins = matches.filter((match) => match.result === "win").length;
   const rounds = matches.reduce((sum, match) => sum + match.scoreUs + match.scoreThem, 0);
-  const adr = rounds ? matches.reduce((sum, match) => sum + match.adr * (match.scoreUs + match.scoreThem), 0) / rounds : 0;
+  const adrMatches = matches.filter((match) => match.adr > 0);
+  const adrRounds = adrMatches.reduce((sum, match) => sum + match.scoreUs + match.scoreThem, 0);
+  const adr = adrRounds
+    ? adrMatches.reduce((sum, match) => sum + match.adr * (match.scoreUs + match.scoreThem), 0) / adrRounds
+    : 0;
   const hsKills = matches.reduce((sum, match) => sum + match.hs, 0);
   const roundDiff = matches.reduce((sum, match) => sum + match.scoreUs - match.scoreThem, 0);
+  const parsedMatches = matches.filter((match) => match.kast && match.kast > 0);
+  const parsedRounds = parsedMatches.reduce((sum, match) => sum + match.scoreUs + match.scoreThem, 0);
+  const kast = parsedRounds
+    ? parsedMatches.reduce((sum, match) => sum + (match.kast ?? 0) * (match.scoreUs + match.scoreThem), 0) / parsedRounds
+    : 0;
+  const hltv = parsedRounds
+    ? parsedMatches.reduce((sum, match) => sum + match.rating * (match.scoreUs + match.scoreThem), 0) / parsedRounds
+    : 0;
 
   const put = (id: string, value: number) => {
     const def = metric(id);
@@ -140,6 +153,7 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
       display: formatMetric(def, value),
       n: matches.length,
       confidence: matches.length >= 20 ? "high" : matches.length >= 10 ? "medium" : "low",
+      source: "computed",
     };
   };
 
@@ -150,8 +164,10 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
   put("KIL-002", deaths);
   put("KIL-003", assists);
   put("KIL-004", kills / Math.max(deaths, 1));
-  put("KIL-011", adr);
-  put("KIL-015", kills ? (hsKills / kills) * 100 : 0);
+  if (adrRounds > 0) put("KIL-011", adr);
+  if (hsKills > 0) put("KIL-015", kills ? (hsKills / kills) * 100 : 0);
+  if (parsedRounds > 0) put("KIL-009", kast);
+  if (parsedRounds > 0) put("IMP-002", hltv);
 
   const winRate = (wins / matches.length) * 100;
   values["CTX-002"] = {
@@ -163,6 +179,7 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
     delta: winRate - 50,
     benchmark: 50,
     percentile: Math.round(winRate),
+    source: "computed",
   };
 }
 
@@ -207,8 +224,11 @@ function filteredMatches(filters: Record<string, string>): MatchSummary[] {
         assists: Number(row.assists ?? 0),
         adr: Number(row.adr ?? 0),
         hs: Number(row.hs_kills ?? 0),
+        kast: Number(row.kast ?? 0),
         rating: Number(row.rating ?? 0),
         delta: 0,
+        source: row.source === "gc" ? "gc" : "demo",
+        isDemo: Number(row.is_demo ?? 0) === 1,
       } satisfies MatchSummary;
     });
 }

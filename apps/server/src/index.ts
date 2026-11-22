@@ -18,7 +18,8 @@ import { seedDemo } from "./demo.js";
 import { filters } from "./filters.js";
 import { metric, metrics, registryVersion } from "./registry.js";
 import { decodeShareCode, isShareCode } from "./steam/sharecode.js";
-import { startSteamWorker, stopSteamWorker, workerStatus } from "./steam/worker.js";
+import { requestRecentMatches, startSteamWorker, stopSteamWorker, workerStatus } from "./steam/worker.js";
+import { processDemo } from "./steam/demo-parse.js";
 import {
   cancelLogin,
   configureLogin,
@@ -203,6 +204,36 @@ app.post<{ Body: { code?: string } }>("/api/steam/guard", async (request, reply)
 });
 
 app.post("/api/steam/qr", async () => startQr());
+
+app.post("/api/steam/recent", async (_request, reply) => {
+  const queued = requestRecentMatches();
+  if (!queued) {
+    return reply.code(409).send({ code: "GC_NOT_READY", message: "Steam GC is not connected yet" });
+  }
+  return { ok: true, queued: true };
+});
+
+app.post<{ Params: { id: string } }>("/api/steam/demo/:id", async (request, reply) => {
+  const row = db
+    .prepare("SELECT demo_url FROM matches WHERE match_id = ?")
+    .get(request.params.id) as { demo_url?: string } | undefined;
+  if (!row?.demo_url) {
+    return reply.code(404).send({ code: "DEMO_NOT_AVAILABLE", message: "No demo URL for this match" });
+  }
+  const session = storedSession();
+  if (!session) {
+    return reply.code(409).send({ code: "STEAM_NOT_CONNECTED", message: "Connect Steam first" });
+  }
+  try {
+    const result = await processDemo(request.params.id, row.demo_url, session.steamId);
+    return { ok: true, result };
+  } catch (error) {
+    return reply.code(500).send({
+      code: "DEMO_PARSE_FAILED",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 app.post("/api/steam/cancel", async () => cancelLogin());
 

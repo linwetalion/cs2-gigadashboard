@@ -55,6 +55,8 @@ export function Widget({ widget, data, metrics, onOpen }: Props) {
             {value?.benchmark !== null && value?.benchmark !== undefined && (
               <span className="bench">бенч {value.benchmark.toFixed(1)}</span>
             )}
+            {value?.source === "demo" && <span className="src-tag">demo</span>}
+            {value?.source === "computed" && <span className="src-tag computed">computed</span>}
             <span className={`dot ${value?.confidence ?? "none"}`} title={value?.confidence} />
           </span>
         </button>

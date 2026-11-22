@@ -1,5 +1,9 @@
 import SteamUser from "steam-user";
 import NodeCS2 from "node-cs2";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { dataDir } from "../config.js";
+import { ingestMatchList, steamIdToAccountId, type IngestResult } from "./gc-ingest.js";
 import { SerialQueue } from "./queue.js";
 
 export interface SteamWorkerStatus {
@@ -11,6 +15,8 @@ export interface SteamWorkerStatus {
   lastMatchAt: string | null;
   accountName?: string;
   steamId?: string;
+  imported?: number;
+  skipped?: number;
 }
 
 export const workerStatus: SteamWorkerStatus = {
@@ -25,6 +31,18 @@ export const workerStatus: SteamWorkerStatus = {
 const queue = new SerialQueue({ delayMs: 1500 });
 let activeUser: SteamUser | null = null;
 let activeCs2: NodeCS2 | null = null;
+
+export function requestRecentMatches(): boolean {
+  if (!activeCs2 || !workerStatus.steamId) return false;
+  queue.add({
+    id: `recent-manual:${workerStatus.steamId}`,
+    run: async () => {
+      activeCs2!.requestRecentGames(workerStatus.steamId!);
+      workerStatus.requests += 1;
+    },
+  });
+  return true;
+}
 
 export function stopSteamWorker(): void {
   try {
@@ -106,8 +124,27 @@ export function startSteamWorker(options: {
 
   cs2.on("matchList", (matches: unknown[]) => {
     workerStatus.lastMatchAt = new Date().toISOString();
-    console.info(`[gc] matchList: ${matches.length} match(es)`);
-    // Normalization is the next milestone; for now we only prove the pipe works.
+    const list = Array.isArray(matches) ? matches : [];
+    console.info(`[gc] matchList: ${list.length} match(es)`);
+    try {
+      writeFileSync(resolve(dataDir, "gc-last.json"), JSON.stringify(list, null, 2));
+    } catch (error) {
+      console.error("[gc] failed to dump match list", error);
+    }
+    if (options.steamId && list.length) {
+      try {
+        const result: IngestResult = ingestMatchList(
+          list as Parameters<typeof ingestMatchList>[0],
+          steamIdToAccountId(options.steamId)
+        );
+        workerStatus.imported = result.imported;
+        workerStatus.skipped = result.skipped;
+        console.info(`[gc] imported ${result.imported}, skipped ${result.skipped}`);
+      } catch (error) {
+        console.error("[gc] ingest failed", error);
+        workerStatus.lastError = error instanceof Error ? error.message : String(error);
+      }
+    }
   });
 
   cs2.on("error", (error: Error) => {

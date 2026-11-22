@@ -151,6 +151,7 @@ export function demoValue(metric: Metric, scope: string): MetricValue {
       n: 0,
       confidence: "none",
       reason: "DEMO_GAP",
+      source: "unavailable",
     };
   }
   const base =
@@ -181,6 +182,7 @@ export function demoValue(metric: Metric, scope: string): MetricValue {
     previous: value - delta,
     benchmark,
     percentile,
+    source: "demo",
   };
 }
 
@@ -361,10 +363,14 @@ export function seedDemo(): { matches: number; metrics: number } {
 export function readMatches(limit = 24) {
   return db
     .prepare(
-      `SELECT m.*, p.kills, p.deaths, p.assists, p.adr, p.hs_kills, p.rating, p.damage
+      `SELECT m.*, p.kills, p.deaths, p.assists, p.adr, p.hs_kills, p.kast, p.rating, p.damage
        FROM matches m
        LEFT JOIN match_players p ON p.match_id = m.match_id AND p.is_me = 1
        WHERE m.status = 'published'
+         AND (
+           m.is_demo = 0
+           OR NOT EXISTS (SELECT 1 FROM matches real WHERE real.is_demo = 0 AND real.status = 'published')
+         )
        ORDER BY m.started_at DESC LIMIT ?`
     )
     .all(limit) as Array<Record<string, unknown>>;
@@ -386,5 +392,6 @@ export function readMetricValue(metricId: string, scope = "global"): MetricValue
     benchmark: row.benchmark as number | null,
     percentile: row.percentile as number | null,
     reason: row.reason as string | undefined,
+    source: "demo",
   };
 }

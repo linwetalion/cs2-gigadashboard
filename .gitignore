@@ -7,6 +7,7 @@ data/*.db
 data/*.db-*
 data/demos/
 data/auth/
+data/gc-*.json
 data/metrics.json
 .DS_Store
 Thumbs.db

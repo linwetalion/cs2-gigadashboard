@@ -94,7 +94,7 @@ export default function App() {
                 {data.meta.player.name}
                 <em>#{data.meta.player.steamId.slice(-4)}</em>
               </span>
-              <span className="badge demo">DEMO</span>
+              <span className={`badge ${data.demo ? "demo" : "live"}`}>{data.demo ? "DEMO" : "GC DATA"}</span>
               <span className="badge">registry {data.meta.registryVersion}</span>
               <span className="badge">{data.meta.sampleMatches} matches</span>
             </>

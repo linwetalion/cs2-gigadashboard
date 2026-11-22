@@ -11,6 +11,7 @@
 | Репозиторий | https://github.com/linwetalion/cs2-gigadashboard (public) |
 | Ветка | `main` |
 | Режим | `GIGA_DEMO=1`, SQLite в `/tmp/giga.db` |
+| Реальные данные | только локально: GC-синк и демки не переносятся на Render |
 | Basic Auth | пользователь `giga`, пароль задан в Render Environment |
 
 Пароль в репозиторий не записывается. Он хранится только в Render → Environment → `APP_PASSWORD`.

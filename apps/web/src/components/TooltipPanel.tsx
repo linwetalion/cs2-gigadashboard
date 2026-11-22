@@ -51,6 +51,7 @@ export function TooltipDrawer({ metric, value, onClose }: Props) {
           <section className="drawer-block">
             <h3>Текущее значение</h3>
             <div className="drawer-value">{value.display}</div>
+            <p className="muted">Источник значения: {value.source ?? "demo"}</p>
             {value.benchmark !== null && value.benchmark !== undefined && (
               <p className="muted">
                 Бенчмарк ранга: {value.benchmark.toFixed(2)} · перцентиль {value.percentile ?? "—"}

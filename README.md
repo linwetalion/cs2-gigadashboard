@@ -40,6 +40,7 @@ npm run start       # http://127.0.0.1:8787, статика + API
 - Basic Auth через `APP_USER` / `APP_PASSWORD`.
 - Кодек share-кодов (decode/encode, тесты), Web API walker `GetNextMatchSharingCode`, последовательная GC-очередь.
 - Steam-логин: пароль/QR, Steam Guard (email/TOTP/device), шифрованный refresh-token, автозапуск GC-воркера.
+- Импорт последних матчей из GC и парсинг демок: карта, имена, K/D/A, ADR, KAST, HLTV 2.0, киллфид, раунды.
 - Dockerfile, compose, примеры Caddy/Cloudflared/systemd.
 
 ## Демо-данные
@@ -67,6 +68,7 @@ scripts/          парсер ТЗ -> YAML
 | `npm run seed` | пересоздать демо-данные |
 | `npm run typecheck` | проверка типов |
 | `npm test` | тесты реестра и share-кодов |
+| `npm run demos:parse` | скачать и распарсить доступные демки (локально) |
 | `npm run metrics:sync` | перегенерировать `data/metrics.yaml` из ТЗ |
 
 ## Дальше по плану

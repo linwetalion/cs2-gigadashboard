@@ -25,17 +25,20 @@
    - [x] Автозапуск воркера из сохранённого токена.
    - [ ] Проверка на реальном аккаунте (нужен Steam Guard пользователя).
 
-2. **Синк матчей**
-   - `requestRecentGames` для последних 8.
-   - `walkShareCodes` для истории.
-   - `requestGame(shareCode)` → `matchList`.
-   - Нормализация в `matches`, `match_players`, `rounds`.
-   - Acceptance: матч появляется в списке без демки, K/D/A/ADR совпадают со счётом.
+2. **Синк матчей** — сделано
+   - [x] `requestRecentGames` для последних 8.
+   - [x] Нормализация в `matches`, `match_players`, `rounds`.
+   - [x] K/D/A/HS/счёт/длительность из GC.
+   - [ ] `walkShareCodes` для полной истории.
+   - [ ] `requestGame(shareCode)` для матчей вне последних 8.
 
-3. **Демки**
-   - URL `replay*.valve.net/730/{matchId}_{outcomeId}.dem.bz2`.
-   - Скачивание, распаковка, `@laihoe/demoparser2`.
-   - `shots`, `kills`, `damage`, `grenades`, `economy`, `positions`.
+3. **Демки** — базовый парсинг сделан
+   - [x] URL `replay*.valve.net/730/{matchId}_{outcomeId}.dem.bz2`.
+   - [x] Скачивание, распаковка, `@laihoe/demoparser2`.
+   - [x] Карта, имена, kills, damage, ADR, KAST, HLTV 2.0, раунды.
+   - [x] `kills` в БД.
+   - [ ] `shots`, `grenades`, `economy`, `positions` (AIM/UTL/POS).
+   - [ ] 2D-реплей из реальных тиков.
    - Acceptance: KIL/ACC/AIM/UTL/ECO считаются из событий, а не из демо-генератора.
 
 4. **Метрики v1**

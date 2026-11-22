@@ -32,6 +32,7 @@ export interface MetricValue {
   percentile?: number | null;
   previous?: number | null;
   reason?: string;
+  source?: "computed" | "demo" | "unavailable";
 }
 
 export type WidgetKind =
@@ -115,8 +116,11 @@ export interface MatchSummary {
   assists: number;
   adr: number;
   hs: number;
+  kast?: number;
   rating: number;
   delta: number;
+  source: "demo" | "gc";
+  isDemo: boolean;
 }
 
 export interface PlayerSummary {

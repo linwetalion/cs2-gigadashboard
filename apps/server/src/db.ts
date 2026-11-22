@@ -85,6 +85,102 @@ CREATE TABLE IF NOT EXISTS metric_values (
   PRIMARY KEY (metric_id, scope)
 );
 
+CREATE TABLE IF NOT EXISTS kills (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  match_id TEXT NOT NULL,
+  round_no INTEGER NOT NULL,
+  tick INTEGER NOT NULL,
+  killer TEXT,
+  victim TEXT,
+  assister TEXT,
+  weapon TEXT,
+  headshot INTEGER NOT NULL DEFAULT 0,
+  wallbang INTEGER NOT NULL DEFAULT 0,
+  noscope INTEGER NOT NULL DEFAULT 0,
+  airborne INTEGER NOT NULL DEFAULT 0,
+  flashed INTEGER NOT NULL DEFAULT 0,
+  trade INTEGER NOT NULL DEFAULT 0,
+  opening INTEGER NOT NULL DEFAULT 0,
+  killer_x REAL,
+  killer_y REAL,
+  victim_x REAL,
+  victim_y REAL
+);
+
+CREATE TABLE IF NOT EXISTS damage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  match_id TEXT NOT NULL,
+  round_no INTEGER NOT NULL,
+  tick INTEGER NOT NULL,
+  attacker TEXT,
+  victim TEXT,
+  weapon TEXT,
+  hitgroup TEXT,
+  dmg INTEGER NOT NULL DEFAULT 0,
+  friendly INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS shots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  match_id TEXT NOT NULL,
+  round_no INTEGER NOT NULL,
+  tick INTEGER NOT NULL,
+  steamid TEXT,
+  weapon TEXT,
+  hitgroup TEXT,
+  distance REAL,
+  speed REAL,
+  scoped INTEGER NOT NULL DEFAULT 0,
+  spotted_enemy INTEGER NOT NULL DEFAULT 1,
+  first_bullet INTEGER NOT NULL DEFAULT 0,
+  spray_index INTEGER NOT NULL DEFAULT 0,
+  hit INTEGER NOT NULL DEFAULT 0,
+  dmg INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS grenades (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  match_id TEXT NOT NULL,
+  round_no INTEGER NOT NULL,
+  tick INTEGER NOT NULL,
+  thrower TEXT,
+  type TEXT,
+  x REAL,
+  y REAL,
+  x2 REAL,
+  y2 REAL,
+  blind_ms INTEGER NOT NULL DEFAULT 0,
+  full_blind INTEGER NOT NULL DEFAULT 0,
+  effective INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS economy (
+  match_id TEXT NOT NULL,
+  round_no INTEGER NOT NULL,
+  steamid TEXT NOT NULL,
+  cash_start INTEGER,
+  equip_start INTEGER,
+  cash_spent INTEGER,
+  cash_earned INTEGER,
+  loss_bonus INTEGER,
+  PRIMARY KEY (match_id, round_no, steamid)
+);
+
+CREATE TABLE IF NOT EXISTS positions (
+  match_id TEXT NOT NULL,
+  round_no INTEGER NOT NULL,
+  tick INTEGER NOT NULL,
+  steamid TEXT NOT NULL,
+  x REAL,
+  y REAL,
+  z REAL,
+  speed REAL,
+  health INTEGER,
+  team TEXT,
+  zone TEXT,
+  PRIMARY KEY (match_id, round_no, tick, steamid)
+);
+
 CREATE TABLE IF NOT EXISTS sync_state (
   source TEXT PRIMARY KEY,
   last_code TEXT,
@@ -95,9 +191,25 @@ CREATE TABLE IF NOT EXISTS sync_state (
 CREATE INDEX IF NOT EXISTS idx_matches_started ON matches(started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_matches_map ON matches(map);
 CREATE INDEX IF NOT EXISTS idx_metric_scope ON metric_values(scope);
+CREATE INDEX IF NOT EXISTS idx_kills_match ON kills(match_id, round_no, tick);
+CREATE INDEX IF NOT EXISTS idx_damage_match ON damage(match_id, round_no, tick);
+CREATE INDEX IF NOT EXISTS idx_shots_match ON shots(match_id, round_no, tick);
+CREATE INDEX IF NOT EXISTS idx_positions_match ON positions(match_id, round_no, tick);
 `;
 
 db.exec(schema);
+
+function ensureColumn(table: string, column: string, definition: string): void {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (!columns.some((entry) => entry.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+ensureColumn("matches", "demo_url", "TEXT");
+ensureColumn("matches", "parsed_at", "INTEGER");
+ensureColumn("matches", "demo_status", "TEXT");
+ensureColumn("match_players", "kast", "REAL");
 
 export function setMeta(key: string, value: string) {
   db.prepare(
