@@ -29,7 +29,8 @@
    - [x] `requestRecentGames` для последних 8.
    - [x] Нормализация в `matches`, `match_players`, `rounds`.
    - [x] K/D/A/HS/счёт/длительность из GC.
-   - [ ] `walkShareCodes` для полной истории.
+   - [x] Импорт истории Leetify (540+ матчей) как `source='leetify'`.
+   - [ ] `walkShareCodes` для полной истории напрямую из Steam.
    - [ ] `requestGame(shareCode)` для матчей вне последних 8.
 
 3. **Демки** — базовый парсинг сделан
@@ -37,8 +38,10 @@
    - [x] Скачивание, распаковка, `@laihoe/demoparser2`.
    - [x] Карта, имена, kills, damage, ADR, KAST, HLTV 2.0, раунды.
    - [x] `kills` в БД.
-   - [ ] `shots`, `grenades`, `economy`, `positions` (AIM/UTL/POS).
-   - [ ] 2D-реплей из реальных тиков.
+   - [x] `shots`, `damage`, `grenades`, `positions` в БД.
+   - [x] Accuracy, first-bullet, spray, HS hits, grenade counts.
+   - [ ] TTD/TTK/preaim, 2D-реплей, зоны.
+   - [ ] `economy` по тикам.
    - Acceptance: KIL/ACC/AIM/UTL/ECO считаются из событий, а не из демо-генератора.
 
 4. **Метрики v1**

@@ -30,6 +30,17 @@ export interface SteamLoginState {
   error?: string;
 }
 
+export interface HistoryStatus {
+  running: boolean;
+  phase: "idle" | "walking" | "fetching" | "done" | "error";
+  total: number;
+  processed: number;
+  failed: number;
+  lastError: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
 export interface SteamStatus {
   login: SteamLoginState;
   worker: {
@@ -44,6 +55,7 @@ export interface SteamStatus {
   };
   syncEnabled: boolean;
   hasToken: boolean;
+  hasApiKey?: boolean;
 }
 
 async function postJson<T>(url: string, body?: unknown): Promise<T> {
@@ -70,4 +82,11 @@ export const steamApi = {
   cancel: () => postJson<SteamLoginState>("/api/steam/cancel"),
   logout: () => postJson<SteamLoginState>("/api/steam/logout"),
   sync: () => postJson<{ ok: boolean; message: string }>("/api/sync"),
+  history: async (): Promise<{ status: HistoryStatus; canWalk: boolean }> => {
+    const response = await fetch("/api/steam/history");
+    if (!response.ok) throw new Error(`History status failed: ${response.status}`);
+    return response.json() as Promise<{ status: HistoryStatus; canWalk: boolean }>;
+  },
+  startHistory: (authCode: string, knownCode: string) =>
+    postJson<HistoryStatus>("/api/steam/history", { authCode, knownCode }),
 };

@@ -15,6 +15,7 @@ import {
   readMetricValue,
 } from "./demo.js";
 import { metric, metrics, registryVersion } from "./registry.js";
+import { applyRealMetrics } from "./real-metrics.js";
 import { sections } from "./widgets.js";
 
 const PLAYER = {
@@ -92,6 +93,10 @@ export function buildDashboard(rawFilters: Record<string, string | undefined>): 
 
   const matches = filteredMatches(filters);
   applyMatchAggregates(values, matches);
+  applyRealMetrics(
+    values,
+    matches.filter((match) => !match.isDemo).map((match) => match.matchId)
+  );
 
   const series: Record<string, SeriesPoint[]> = {};
   for (const section of sections) {
@@ -141,9 +146,29 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
   const kast = parsedRounds
     ? parsedMatches.reduce((sum, match) => sum + (match.kast ?? 0) * (match.scoreUs + match.scoreThem), 0) / parsedRounds
     : 0;
-  const hltv = parsedRounds
-    ? parsedMatches.reduce((sum, match) => sum + match.rating * (match.scoreUs + match.scoreThem), 0) / parsedRounds
-    : 0;
+
+  const weighted = (
+    selector: (match: MatchSummary) => number | undefined,
+    allowNegative = false
+  ) => {
+    let sum = 0;
+    let weight = 0;
+    for (const match of matches) {
+      const value = selector(match);
+      if (value === undefined || value === null || Number.isNaN(value)) continue;
+      if (allowNegative ? value === 0 : value <= 0) continue;
+      const rounds = match.scoreUs + match.scoreThem;
+      sum += value * rounds;
+      weight += rounds;
+    }
+    return weight ? sum / weight : null;
+  };
+
+  const hltv = weighted((match) => match.rating);
+  const aimRating = weighted((match) => match.aim);
+  const utilityRating = weighted((match) => match.utility);
+  const positioningRating = weighted((match) => match.positioning);
+  const leetifyRating = weighted((match) => match.leetifyRating, true);
 
   const put = (id: string, value: number) => {
     const def = metric(id);
@@ -167,7 +192,14 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
   if (adrRounds > 0) put("KIL-011", adr);
   if (hsKills > 0) put("KIL-015", kills ? (hsKills / kills) * 100 : 0);
   if (parsedRounds > 0) put("KIL-009", kast);
-  if (parsedRounds > 0) put("IMP-002", hltv);
+  if (hltv !== null) put("IMP-002", hltv);
+  if (aimRating !== null) put("IMP-011", aimRating);
+  if (utilityRating !== null) {
+    put("UTL-038", utilityRating);
+    put("IMP-012", utilityRating);
+  }
+  if (positioningRating !== null) put("IMP-013", positioningRating);
+  if (leetifyRating !== null) put("IMP-006", leetifyRating);
 
   const winRate = (wins / matches.length) * 100;
   values["CTX-002"] = {
@@ -184,7 +216,7 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
 }
 
 function filteredMatches(filters: Record<string, string>): MatchSummary[] {
-  const rows = readMatches(200);
+  const rows = readMatches(1000);
   const now = Date.now();
   const rangeMs =
     filters.range === "7d"
@@ -226,8 +258,12 @@ function filteredMatches(filters: Record<string, string>): MatchSummary[] {
         hs: Number(row.hs_kills ?? 0),
         kast: Number(row.kast ?? 0),
         rating: Number(row.rating ?? 0),
+        aim: Number(row.aim ?? 0),
+        utility: Number(row.utility ?? 0),
+        positioning: Number(row.positioning ?? 0),
+        leetifyRating: Number(row.leetify_rating ?? 0),
         delta: 0,
-        source: row.source === "gc" ? "gc" : "demo",
+        source: row.source === "gc" ? "gc" : row.source === "leetify" ? "leetify" : "demo",
         isDemo: Number(row.is_demo ?? 0) === 1,
       } satisfies MatchSummary;
     });

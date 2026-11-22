@@ -210,6 +210,10 @@ ensureColumn("matches", "demo_url", "TEXT");
 ensureColumn("matches", "parsed_at", "INTEGER");
 ensureColumn("matches", "demo_status", "TEXT");
 ensureColumn("match_players", "kast", "REAL");
+ensureColumn("match_players", "leetify_rating", "REAL");
+ensureColumn("match_players", "aim", "REAL");
+ensureColumn("match_players", "utility", "REAL");
+ensureColumn("match_players", "positioning", "REAL");
 
 export function setMeta(key: string, value: string) {
   db.prepare(

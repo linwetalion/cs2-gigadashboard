@@ -13,3 +13,4 @@ export const IS_DEMO = (process.env.GIGA_DEMO ?? "1") === "1";
 export const STEAM_SYNC = (process.env.STEAM_SYNC ?? "0") === "1";
 export const STEAM_REFRESH_TOKEN = process.env.STEAM_REFRESH_TOKEN;
 export const STEAM_ID = process.env.STEAM_ID;
+export const STEAM_API_KEY = process.env.STEAM_API_KEY;

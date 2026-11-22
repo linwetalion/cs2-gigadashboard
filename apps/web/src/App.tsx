@@ -94,7 +94,7 @@ export default function App() {
                 {data.meta.player.name}
                 <em>#{data.meta.player.steamId.slice(-4)}</em>
               </span>
-              <span className={`badge ${data.demo ? "demo" : "live"}`}>{data.demo ? "DEMO" : "GC DATA"}</span>
+              <span className={`badge ${data.demo ? "demo" : "live"}`}>{data.demo ? "DEMO" : "REAL DATA"}</span>
               <span className="badge">registry {data.meta.registryVersion}</span>
               <span className="badge">{data.meta.sampleMatches} matches</span>
             </>
@@ -242,7 +242,7 @@ export default function App() {
 
       <footer className="footer">
         <span>
-          Локальный сервер · SQLite · {data?.demo ? "демо-данные" : "GC + распарсенные демки"}
+          Локальный сервер · SQLite · {data?.demo ? "демо-данные" : "GC + Leetify-история + демки"}
         </span>
         <span>Giga Score не является официальным рейтингом Valve</span>
       </footer>

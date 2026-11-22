@@ -9,6 +9,7 @@
 - Деплой на Northflank: [`deploy/NORTHFLANK.md`](deploy/NORTHFLANK.md)
 - Публичный стенд: [`docs/DEPLOYED.md`](docs/DEPLOYED.md) → https://cs2-gigadashboard.onrender.com
 - Подключение Steam: [`docs/STEAM.md`](docs/STEAM.md)
+- История матчей и источники: [`docs/HISTORY.md`](docs/HISTORY.md)
 - План реализации: [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - Реестр метрик: [`data/metrics.yaml`](data/metrics.yaml) (генерируется из ТЗ)
 
@@ -40,7 +41,8 @@ npm run start       # http://127.0.0.1:8787, статика + API
 - Basic Auth через `APP_USER` / `APP_PASSWORD`.
 - Кодек share-кодов (decode/encode, тесты), Web API walker `GetNextMatchSharingCode`, последовательная GC-очередь.
 - Steam-логин: пароль/QR, Steam Guard (email/TOTP/device), шифрованный refresh-token, автозапуск GC-воркера.
-- Импорт последних матчей из GC и парсинг демок: карта, имена, K/D/A, ADR, KAST, HLTV 2.0, киллфид, раунды.
+- Импорт последних матчей из GC и парсинг демок: карта, имена, K/D/A, ADR, KAST, HLTV 2.0, киллфид, раунды, shots, damage, grenades, positions.
+- Импорт истории Leetify: 540+ матчей с 2021 года, ADR/Aim/Utility/Positioning/Leetify Rating.
 - Dockerfile, compose, примеры Caddy/Cloudflared/systemd.
 
 ## Демо-данные

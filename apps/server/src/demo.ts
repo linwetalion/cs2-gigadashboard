@@ -363,7 +363,8 @@ export function seedDemo(): { matches: number; metrics: number } {
 export function readMatches(limit = 24) {
   return db
     .prepare(
-      `SELECT m.*, p.kills, p.deaths, p.assists, p.adr, p.hs_kills, p.kast, p.rating, p.damage
+      `SELECT m.*, p.kills, p.deaths, p.assists, p.adr, p.hs_kills, p.kast, p.rating,
+              p.aim, p.utility, p.positioning, p.leetify_rating, p.damage
        FROM matches m
        LEFT JOIN match_players p ON p.match_id = m.match_id AND p.is_me = 1
        WHERE m.status = 'published'

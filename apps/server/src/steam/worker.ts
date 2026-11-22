@@ -32,6 +32,18 @@ const queue = new SerialQueue({ delayMs: 1500 });
 let activeUser: SteamUser | null = null;
 let activeCs2: NodeCS2 | null = null;
 
+export function requestGameByCode(shareCode: string): boolean {
+  if (!activeCs2) return false;
+  queue.add({
+    id: `game:${shareCode}`,
+    run: async () => {
+      activeCs2!.requestGame(shareCode);
+      workerStatus.requests += 1;
+    },
+  });
+  return true;
+}
+
 export function requestRecentMatches(): boolean {
   if (!activeCs2 || !workerStatus.steamId) return false;
   queue.add({

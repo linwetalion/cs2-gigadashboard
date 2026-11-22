@@ -1,6 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
+import cors from "@fastify/cors";
 import { existsSync } from "node:fs";
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -20,6 +21,8 @@ import { metric, metrics, registryVersion } from "./registry.js";
 import { decodeShareCode, isShareCode } from "./steam/sharecode.js";
 import { requestRecentMatches, startSteamWorker, stopSteamWorker, workerStatus } from "./steam/worker.js";
 import { processDemo } from "./steam/demo-parse.js";
+import { canWalkHistory, historyStatus, startHistory } from "./steam/history.js";
+import { importLeetifyGames, type LeetifyGame } from "./steam/leetify-import.js";
 import {
   cancelLogin,
   configureLogin,
@@ -33,6 +36,7 @@ import {
 } from "./steam/login.js";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
+await app.register(cors, { origin: true });
 
 // Optional HTTP Basic Auth. Required whenever the app is exposed outside loopback.
 const APP_USER = process.env.APP_USER;
@@ -179,6 +183,7 @@ app.get("/api/steam/status", async () => ({
   worker: workerStatus,
   syncEnabled: STEAM_SYNC,
   hasToken: Boolean(storedSession()),
+  hasApiKey: canWalkHistory(),
 }));
 
 app.post<{
@@ -212,6 +217,54 @@ app.post("/api/steam/recent", async (_request, reply) => {
   }
   return { ok: true, queued: true };
 });
+
+app.post<{ Body: { games?: LeetifyGame[] } }>("/api/import/leetify", async (request, reply) => {
+  const games = request.body?.games;
+  if (!Array.isArray(games)) {
+    return reply.code(400).send({ code: "GAMES_REQUIRED", message: "games array is required" });
+  }
+  const session = storedSession();
+  if (!session) {
+    return reply.code(409).send({ code: "STEAM_NOT_CONNECTED", message: "Connect Steam first" });
+  }
+  const result = importLeetifyGames(games, session.steamId);
+  return { ok: true, ...result };
+});
+
+app.get("/api/steam/history", async () => ({
+  status: historyStatus,
+  canWalk: canWalkHistory(),
+  hasKey: canWalkHistory(),
+}));
+
+app.post<{ Body: { authCode?: string; knownCode?: string } }>(
+  "/api/steam/history",
+  async (request, reply) => {
+    const { authCode, knownCode } = request.body ?? {};
+    if (!authCode || !knownCode) {
+      return reply
+        .code(400)
+        .send({ code: "HISTORY_CODES_REQUIRED", message: "authCode and knownCode are required" });
+    }
+    if (!isShareCode(knownCode)) {
+      return reply.code(400).send({ code: "INVALID_SHARE_CODE", message: knownCode });
+    }
+    if (!canWalkHistory()) {
+      return reply.code(409).send({
+        code: "STEAM_API_KEY_MISSING",
+        message: "Set STEAM_API_KEY in .env and restart the server",
+      });
+    }
+    try {
+      return await startHistory(authCode, knownCode);
+    } catch (error) {
+      return reply.code(409).send({
+        code: "HISTORY_FAILED",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+);
 
 app.post<{ Params: { id: string } }>("/api/steam/demo/:id", async (request, reply) => {
   const row = db

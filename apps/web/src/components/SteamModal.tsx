@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { steamApi, type SteamLoginState, type SteamStatus } from "../api";
+import {
+  steamApi,
+  type HistoryStatus,
+  type SteamLoginState,
+  type SteamStatus,
+} from "../api";
 
 interface Props {
   open: boolean;
@@ -20,6 +25,10 @@ export function SteamModal({ open, onClose, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryStatus | null>(null);
+  const [authCode, setAuthCode] = useState("");
+  const [knownCode, setKnownCode] = useState("");
+  const [historyBusy, setHistoryBusy] = useState(false);
 
   const apply = (next: SteamLoginState) => {
     setStatus((current) => (current ? { ...current, login: next } : current));
@@ -37,12 +46,23 @@ export function SteamModal({ open, onClose, onChanged }: Props) {
     }
   };
 
+  const refreshHistory = async () => {
+    try {
+      const payload = await steamApi.history();
+      setHistory(payload.status);
+    } catch {
+      // history is optional until the API key is configured
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
     void refresh();
+    void refreshHistory();
     const timer = window.setInterval(() => {
       void refresh();
-    }, 2000);
+      void refreshHistory();
+    }, 2500);
     return () => window.clearInterval(timer);
   }, [open]);
 
@@ -132,6 +152,72 @@ export function SteamModal({ open, onClose, onChanged }: Props) {
               </button>
             </div>
             {notice && <p className="notice">{notice}</p>}
+
+            <div className="steam-history">
+              <h3>Полная история матчей</h3>
+              <p className="muted small">
+                GC отдаёт только последние 8 матчей. Чтобы подтянуть историю за 1,5 года, нужен
+                Game Authentication Code + один старый share-код из Steam Support / gcpd.
+              </p>
+              {!status?.hasApiKey && (
+                <p className="warn small">
+                  Добавь `STEAM_API_KEY` в `.env` и перезапусти сервер, иначе Steam не отдаст
+                  цепочку share-кодов.
+                </p>
+              )}
+              <label>
+                <span>Game Authentication Code</span>
+                <input
+                  value={authCode}
+                  onChange={(event) => setAuthCode(event.target.value)}
+                  placeholder="AAAA-AAAAA-AAAA"
+                />
+              </label>
+              <label>
+                <span>Старый share-код</span>
+                <input
+                  value={knownCode}
+                  onChange={(event) => setKnownCode(event.target.value)}
+                  placeholder="CSGO-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+                />
+              </label>
+              <button
+                className="ghost"
+                disabled={historyBusy || history?.running || !authCode || !knownCode}
+                onClick={async () => {
+                  setHistoryBusy(true);
+                  setError(null);
+                  try {
+                    const result = await steamApi.startHistory(authCode, knownCode);
+                    setHistory(result);
+                  } catch (reason) {
+                    setError(reason instanceof Error ? reason.message : String(reason));
+                  } finally {
+                    setHistoryBusy(false);
+                  }
+                }}
+              >
+                {history?.running ? "Загрузка истории…" : "Загрузить историю"}
+              </button>
+              {history && history.phase !== "idle" && (
+                <div className="history-progress">
+                  <div className="history-bar">
+                    <i
+                      style={{
+                        width: `${
+                          history.total ? Math.min(100, (history.processed / history.total) * 100) : 5
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <span className="muted small">
+                    {history.phase}: {history.processed}/{history.total}
+                    {history.failed ? ` · ошибок ${history.failed}` : ""}
+                  </span>
+                  {history.lastError && <span className="warn small">{history.lastError}</span>}
+                </div>
+              )}
+            </div>
           </section>
         )}
 

@@ -1095,6 +1095,40 @@ button {
   padding: 6px;
 }
 
+.steam-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.steam-history h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.history-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.history-bar {
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(148, 163, 184, 0.14);
+  overflow: hidden;
+}
+
+.history-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--accent));
+  transition: width 0.3s ease;
+}
+
 .notice {
   color: var(--cyan);
   font-size: 12px;

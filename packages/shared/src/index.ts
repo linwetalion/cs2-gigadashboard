@@ -118,8 +118,12 @@ export interface MatchSummary {
   hs: number;
   kast?: number;
   rating: number;
+  aim?: number;
+  utility?: number;
+  positioning?: number;
+  leetifyRating?: number;
   delta: number;
-  source: "demo" | "gc";
+  source: "demo" | "gc" | "leetify";
   isDemo: boolean;
 }
 

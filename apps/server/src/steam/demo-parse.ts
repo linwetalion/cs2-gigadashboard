@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { resolve } from "node:path";
 import unbzip2 from "unbzip2-stream";
-import { parseEvent, parseHeader, parsePlayerInfo } from "@laihoe/demoparser2";
+import { parseEvent, parseGrenades, parseHeader, parsePlayerInfo, parseTicks } from "@laihoe/demoparser2";
 import { dataDir } from "../config.js";
 import { db } from "../db.js";
 
@@ -34,6 +34,8 @@ interface HurtEvent {
   attacker_steamid?: string | null;
   user_steamid?: string | null;
   dmg_health?: number;
+  weapon?: string;
+  hitgroup?: string;
   tick: number;
   total_rounds_played?: number;
 }
@@ -49,6 +51,33 @@ interface BombEvent {
   user_steamid?: string;
   tick: number;
   total_rounds_played?: number;
+}
+
+interface FireEvent {
+  user_steamid?: string;
+  weapon?: string;
+  tick: number;
+  total_rounds_played?: number;
+}
+
+interface GrenadeRow {
+  grenade_entity_id: number;
+  grenade_type: string;
+  steamid?: string;
+  tick: number;
+  x: number | null;
+  y: number | null;
+  z: number | null;
+}
+
+interface TickRow {
+  X?: number;
+  Y?: number;
+  Z?: number;
+  health?: number;
+  steamid?: string;
+  team_num?: number;
+  tick: number;
 }
 
 export interface DemoResult {
@@ -101,6 +130,8 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   const roundEnds = parseEvent(dem, "round_end") as RoundEndEvent[];
   const plants = parseEvent(dem, "bomb_planted", null, ["total_rounds_played"]) as BombEvent[];
   const defuses = parseEvent(dem, "bomb_defused", null, ["total_rounds_played"]) as BombEvent[];
+  const fires = parseEvent(dem, "weapon_fire", null, ["total_rounds_played"]) as FireEvent[];
+  const grenadeRows = parseGrenades(dem, null, true) as GrenadeRow[];
 
   if (players.length < 2 || roundEnds.length < 1) {
     rmSync(dem, { force: true });
@@ -191,11 +222,48 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
     }
   }
 
+  const maxTick = roundEnds[roundEnds.length - 1]!.tick;
+  const sampleTicks: number[] = [];
+  for (let tick = 64; tick <= maxTick; tick += 64) sampleTicks.push(tick);
+  const tickRows = parseTicks(
+    dem,
+    ["X", "Y", "Z", "health", "team_num"],
+    sampleTicks
+  ) as TickRow[];
+
+  const roundAtTick = (tick: number): number => {
+    let round = 1;
+    for (const end of roundEnds) {
+      if (tick <= end.tick) return end.round;
+      round = end.round + 1;
+    }
+    return round;
+  };
+
   const insertKill = db.prepare(`
     INSERT INTO kills (match_id, round_no, tick, killer, victim, assister, weapon,
       headshot, wallbang, noscope, airborne, flashed, trade, opening,
       killer_x, killer_y, victim_x, victim_y)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL)
+  `);
+  const insertDamage = db.prepare(`
+    INSERT INTO damage (match_id, round_no, tick, attacker, victim, weapon, hitgroup, dmg, friendly)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+  `);
+  const insertShot = db.prepare(`
+    INSERT INTO shots (match_id, round_no, tick, steamid, weapon, hitgroup, distance, speed,
+      scoped, spotted_enemy, first_bullet, spray_index, hit, dmg)
+    VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 1, ?, ?, 0, 0)
+  `);
+  const markShotHit = db.prepare("UPDATE shots SET hit = 1, dmg = ? WHERE id = ?");
+  const insertGrenade = db.prepare(`
+    INSERT INTO grenades (match_id, round_no, tick, thrower, type, x, y, x2, y2,
+      blind_ms, full_blind, effective)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)
+  `);
+  const insertPosition = db.prepare(`
+    INSERT OR REPLACE INTO positions (match_id, round_no, tick, steamid, x, y, z, speed, health, team, zone)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL)
   `);
   const updateMatch = db.prepare(`
     UPDATE matches SET map = ?, parsed_at = ?, demo_status = 'parsed',
@@ -237,6 +305,127 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
         death.noscope ? 1 : 0,
         death.attackerinair ? 1 : 0,
         death.attackerblind ? 1 : 0
+      );
+    }
+
+    for (const hurt of hurts) {
+      if (!hurt.attacker_steamid) continue;
+      insertDamage.run(
+        matchId,
+        roundOf(hurt),
+        hurt.tick,
+        hurt.attacker_steamid,
+        hurt.user_steamid ?? null,
+        hurt.weapon ?? null,
+        hurt.hitgroup ?? null,
+        hurt.dmg_health ?? 0
+      );
+    }
+
+    const shotsByPlayer = new Map<string, Array<{ id: number; tick: number; hit: boolean }>>();
+    let lastFirePlayer = "";
+    let lastFireTick = -100;
+    let sprayIndex = 0;
+    const firstBulletRounds = new Set<string>();
+    for (const fire of [...fires].sort((a, b) => a.tick - b.tick)) {
+      if (!fire.user_steamid) continue;
+      const weaponName = (fire.weapon ?? "").replace(/^weapon_/, "");
+      if (
+        /^(knife|bayonet|c4|hegrenade|flashbang|smokegrenade|molotov|incgrenade|decoy|taser|world)/i.test(
+          weaponName
+        )
+      ) {
+        continue;
+      }
+      const round = roundOf(fire);
+      if (fire.user_steamid === lastFirePlayer && fire.tick - lastFireTick <= 8) {
+        sprayIndex += 1;
+      } else {
+        sprayIndex = 1;
+      }
+      lastFirePlayer = fire.user_steamid;
+      lastFireTick = fire.tick;
+      const key = `${fire.user_steamid}:${round}`;
+      const firstBullet = firstBulletRounds.has(key) ? 0 : 1;
+      if (firstBullet) firstBulletRounds.add(key);
+      const info = insertShot.run(
+        matchId,
+        round,
+        fire.tick,
+        fire.user_steamid,
+        weaponName,
+        firstBullet,
+        sprayIndex
+      );
+      const list = shotsByPlayer.get(fire.user_steamid) ?? [];
+      list.push({ id: Number(info.lastInsertRowid), tick: fire.tick, hit: false });
+      shotsByPlayer.set(fire.user_steamid, list);
+    }
+
+    for (const hurt of [...hurts].sort((a, b) => a.tick - b.tick)) {
+      if (!hurt.attacker_steamid) continue;
+      const list = shotsByPlayer.get(hurt.attacker_steamid);
+      if (!list) continue;
+      for (let i = list.length - 1; i >= 0; i--) {
+        const shot = list[i]!;
+        if (!shot.hit && shot.tick <= hurt.tick && hurt.tick - shot.tick <= 64) {
+          markShotHit.run(hurt.dmg_health ?? 0, shot.id);
+          shot.hit = true;
+          break;
+        }
+      }
+    }
+
+    const grenadeGroups = new Map<
+      number,
+      { type: string; thrower?: string; first: GrenadeRow; last: GrenadeRow }
+    >();
+    for (const row of grenadeRows) {
+      if (row.x == null || row.y == null) continue;
+      if (!/Smoke|Flash|HE|Molotov|Incendiary|Decoy/.test(row.grenade_type)) continue;
+      const group = grenadeGroups.get(row.grenade_entity_id);
+      if (!group) {
+        grenadeGroups.set(row.grenade_entity_id, {
+          type: row.grenade_type,
+          thrower: row.steamid,
+          first: row,
+          last: row,
+        });
+      } else {
+        group.last = row;
+      }
+    }
+    for (const group of grenadeGroups.values()) {
+      const type = group.type
+        .replace(/^C/, "")
+        .replace(/Grenade/g, "")
+        .replace(/Projectile/g, "")
+        .toLowerCase();
+      insertGrenade.run(
+        matchId,
+        roundAtTick(group.first.tick),
+        group.first.tick,
+        group.thrower ?? null,
+        type,
+        group.first.x,
+        group.first.y,
+        group.last.x,
+        group.last.y
+      );
+    }
+
+    for (const row of tickRows) {
+      if (!row.steamid || row.X == null || row.Y == null) continue;
+      insertPosition.run(
+        matchId,
+        roundAtTick(row.tick),
+        row.tick,
+        row.steamid,
+        row.X,
+        row.Y,
+        row.Z ?? null,
+        row.health ?? null,
+        row.team_num === 2 ? "T" : "CT"
       );
     }
 
