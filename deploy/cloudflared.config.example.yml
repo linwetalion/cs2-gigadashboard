@@ -1,0 +1,7 @@
+tunnel: giga
+credentials-file: C:\Users\<you>\.cloudflared\<tunnel-id>.json
+
+ingress:
+  - hostname: giga.name.eu.org
+    service: http://127.0.0.1:8787
+  - service: http_status:404

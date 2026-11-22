@@ -1,0 +1,190 @@
+import "dotenv/config";
+import Fastify from "fastify";
+import fastifyStatic from "@fastify/static";
+import { existsSync } from "node:fs";
+import { timingSafeEqual } from "node:crypto";
+import {
+  PORT,
+  HOST,
+  IS_DEMO,
+  STEAM_SYNC,
+  STEAM_REFRESH_TOKEN,
+  STEAM_ID,
+  webDist,
+} from "./config.js";
+import { db } from "./db.js";
+import { buildDashboard } from "./dashboard.js";
+import { seedDemo } from "./demo.js";
+import { filters } from "./filters.js";
+import { metric, metrics, registryVersion } from "./registry.js";
+import { decodeShareCode, isShareCode } from "./steam/sharecode.js";
+import { startSteamWorker, workerStatus } from "./steam/worker.js";
+
+const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
+
+// Optional HTTP Basic Auth. Required whenever the app is exposed outside loopback.
+const APP_USER = process.env.APP_USER;
+const APP_PASSWORD = process.env.APP_PASSWORD;
+if (APP_USER && APP_PASSWORD) {
+  const expected = Buffer.from(`${APP_USER}:${APP_PASSWORD}`);
+  app.addHook("onRequest", async (request, reply) => {
+    if (request.url === "/api/health") return;
+    const header = request.headers.authorization ?? "";
+    const actual = Buffer.from(header.replace(/^Basic\s+/i, ""), "base64");
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+      reply.header("www-authenticate", 'Basic realm="GigaDashboard"');
+      return reply.code(401).send({ code: "UNAUTHORIZED", message: "Basic auth required" });
+    }
+  });
+}
+
+const matchCount = (
+  db.prepare("SELECT COUNT(*) AS count FROM matches WHERE status = 'published'").get() as {
+    count: number;
+  }
+).count;
+
+if (IS_DEMO && matchCount === 0) {
+  const seeded = seedDemo();
+  app.log.info({ seeded }, "seeded demo dataset");
+}
+
+app.get("/api/health", async () => ({
+  ok: true,
+  demo: IS_DEMO,
+  metrics: metrics.length,
+  registryVersion,
+}));
+
+app.get("/api/bootstrap", async () => ({
+  player: { steamId: "76561198075131708", name: "ULTIMATE" },
+  filters,
+  metrics: metrics.length,
+  registryVersion,
+  demo: IS_DEMO,
+}));
+
+app.get("/api/metrics", async () => ({
+  version: registryVersion,
+  count: metrics.length,
+  metrics,
+}));
+
+app.get<{ Params: { id: string } }>("/api/metrics/:id", async (request, reply) => {
+  try {
+    return { metric: metric(request.params.id) };
+  } catch {
+    return reply.code(404).send({ code: "METRIC_NOT_FOUND", message: request.params.id });
+  }
+});
+
+app.get<{ Querystring: Record<string, string> }>("/api/dashboard", async (request) => {
+  return buildDashboard(request.query);
+});
+
+app.get<{ Querystring: Record<string, string> }>("/api/matches", async (request) => {
+  const payload = buildDashboard(request.query);
+  return {
+    total: payload.matches.length,
+    matches: payload.matches,
+  };
+});
+
+app.get<{ Params: { id: string } }>("/api/matches/:id", async (request, reply) => {
+  const row = db
+    .prepare(
+      `SELECT m.*, p.kills, p.deaths, p.assists, p.adr, p.hs_kills, p.rating
+       FROM matches m
+       LEFT JOIN match_players p ON p.match_id = m.match_id AND p.is_me = 1
+       WHERE m.match_id = ?`
+    )
+    .get(request.params.id) as Record<string, unknown> | undefined;
+  if (!row) return reply.code(404).send({ code: "MATCH_NOT_FOUND", message: request.params.id });
+  const rounds = db
+    .prepare("SELECT * FROM rounds WHERE match_id = ? ORDER BY round_no")
+    .all(request.params.id);
+  return { match: row, rounds };
+});
+
+app.get<{ Querystring: Record<string, string> }>("/api/export.csv", async (request, reply) => {
+  const payload = buildDashboard(request.query);
+  const rows = [["metric_id", "name", "value", "unit", "n", "confidence"]];
+  for (const [id, value] of Object.entries(payload.values)) {
+    const def = metric(id);
+    rows.push([
+      id,
+      def.name,
+      value.value === null ? "" : String(value.value),
+      def.unit,
+      String(value.n),
+      value.confidence,
+    ]);
+  }
+  const csv = rows
+    .map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(","))
+    .join("\n");
+  reply.header("content-type", "text/csv; charset=utf-8");
+  reply.header("content-disposition", 'attachment; filename="giga-metrics.csv"');
+  return csv;
+});
+
+app.get<{ Querystring: { code?: string } }>("/api/sharecode", async (request, reply) => {
+  const code = request.query.code ?? "";
+  if (!isShareCode(code)) {
+    return reply.code(400).send({ code: "INVALID_SHARE_CODE", message: code });
+  }
+  return decodeShareCode(code);
+});
+
+app.get("/api/steam/status", async () => ({
+  ...workerStatus,
+  syncEnabled: STEAM_SYNC,
+  hasToken: Boolean(STEAM_REFRESH_TOKEN),
+}));
+
+app.post("/api/sync", async (_request, reply) => {
+  if (!STEAM_SYNC || !STEAM_REFRESH_TOKEN) {
+    return reply.code(409).send({
+      code: "STEAM_SYNC_DISABLED",
+      message:
+        "Set STEAM_SYNC=1 and STEAM_REFRESH_TOKEN, then restart. The demo dataset is served from data/giga.db.",
+    });
+  }
+  return {
+    ok: true,
+    queue: workerStatus,
+    message: "Worker is running. Match normalization is the next milestone.",
+  };
+});
+
+if (existsSync(webDist)) {
+  await app.register(fastifyStatic, { root: webDist, prefix: "/" });
+  app.setNotFoundHandler((request, reply) => {
+    if (request.url.startsWith("/api/")) {
+      return reply.code(404).send({ code: "NOT_FOUND", message: request.url });
+    }
+    return reply.sendFile("index.html");
+  });
+} else {
+  app.get("/", async () => ({
+    service: "giga-server",
+    message: "Web build not found. Run npm run dev (Vite on 5173) or npm run build.",
+    api: "/api/bootstrap",
+  }));
+}
+
+app
+  .listen({ port: PORT, host: HOST })
+  .then(() => {
+    app.log.info(`Giga server on http://${HOST}:${PORT} (metrics: ${metrics.length})`);
+    if (STEAM_SYNC) {
+      startSteamWorker({ refreshToken: STEAM_REFRESH_TOKEN, steamId: STEAM_ID });
+      app.log.info("Steam worker enabled");
+    } else {
+      workerStatus.lastError = "Steam worker disabled (STEAM_SYNC=0)";
+    }
+  })
+  .catch((error) => {
+    app.log.error(error);
+    process.exit(1);
+  });

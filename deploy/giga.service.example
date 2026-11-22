@@ -1,0 +1,16 @@
+[Unit]
+Description=Giga Dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/giga
+EnvironmentFile=/opt/giga/.env
+ExecStart=/usr/bin/node /opt/giga/apps/server/dist/index.js
+Restart=always
+RestartSec=5
+User=giga
+Group=giga
+
+[Install]
+WantedBy=multi-user.target

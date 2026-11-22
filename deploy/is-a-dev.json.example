@@ -1,0 +1,11 @@
+{
+  "description": "CS2 GigaDashboard",
+  "owner": {
+    "username": "YOUR_GITHUB_USERNAME",
+    "email": "you@example.com"
+  },
+  "record": {
+    "CNAME": "YOUR_TUNNEL_ID.cfargotunnel.com"
+  },
+  "proxied": true
+}

@@ -1,0 +1,30 @@
+{
+  "name": "cs2-gigadashboard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "predev": "npm run build -w @giga/shared",
+    "dev": "concurrently -k -n server,web -c cyan,magenta \"npm run dev -w @giga/server\" \"npm run dev -w @giga/web\"",
+    "prebuild": "npm run build -w @giga/shared",
+    "build": "npm run build -w @giga/server && npm run build -w @giga/web",
+    "pretypecheck": "npm run build -w @giga/shared",
+    "start": "npm run start -w @giga/server",
+    "preseed": "npm run build -w @giga/shared",
+    "seed": "npm run seed -w @giga/server",
+    "metrics:sync": "node scripts/parse-metrics.mjs",
+    "test": "npm run test -w @giga/server",
+    "typecheck": "npm run typecheck -w @giga/server && npm run typecheck -w @giga/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

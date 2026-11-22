@@ -1,0 +1,14 @@
+services:
+  giga:
+    build: .
+    container_name: giga-dashboard
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8787
+      GIGA_DB: /app/data/giga.db
+      GIGA_DEMO: "1"
+    volumes:
+      - ./data:/app/data

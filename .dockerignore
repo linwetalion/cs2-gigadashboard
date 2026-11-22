@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.gitignore
+docs
+data/*.db
+data/*.db-*
+data/demos
+*.log
+.env
+.env.local
+coverage

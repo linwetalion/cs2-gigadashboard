@@ -1,0 +1,5426 @@
+# AUTO-GENERATED from docs/TZ-gigadashboard.md by scripts/parse-metrics.mjs
+# Do not edit by hand. Edit the spec, then run: npm run metrics:sync
+version: 1
+generatedAt: "2026-11-22T01:30:55.250Z"
+count: 538
+metrics:
+  - id: "CTX-001"
+    name: "Матчи"
+    domain: "Контекст"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(matches)`"
+    tooltip: "Сколько матчей попало в текущий фильтр. Нажмите, чтобы открыть список."
+    include: "все завершённые матчи в фильтре."
+    exclude: "warmup, отменённые, технические поражения без демки."
+    aggregation: "`Σ`"
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-002"
+    name: "Win rate"
+    domain: "Контекст"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`WR = W / (W + L + T) × 100`"
+    tooltip: "Доля выигранных матчей. Ничьи входят в знаменатель. Формула: W/(W+L+T)×100. При N<10 показывается предупреждение о шуме."
+    include: "все матчи выборки."
+    exclude: "ничего."
+    aggregation: "`ΣW / Σ(W+L+T)`"
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-001"
+    name: "Победы / поражения / ничьи"
+    domain: "Результат"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`W`, `L`, `T`"
+    tooltip: "Абсолютные исходы матчей. Ничья возможна при 15:15."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-002"
+    name: "Разница раундов"
+    domain: "Результат"
+    unit: "раунды"
+    direction: "up"
+    minSample: 10
+    formula: "`RD = Σ(rounds_won − rounds_lost)`"
+    tooltip: "Суммарная разница выигранных и проигранных раундов. Показывает доминирование лучше, чем win rate: 13:11 и 13:0 дают разный RD."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-003"
+    name: "Средняя разница раундов"
+    domain: "Результат"
+    unit: "раунды/матч"
+    direction: "up"
+    minSample: 10
+    formula: "`RD / N(matches)`"
+    tooltip: "Разница раундов в среднем за матч. 0 — равные матчи, отрицательное — систематическое поражение по раундам."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-004"
+    name: "Матчи с разницей ≤ 2 раундов"
+    domain: "Результат"
+    unit: "%"
+    direction: "neutral"
+    minSample: 10
+    formula: "`N(|RD_match| ≤ 2) / N(matches) × 100`"
+    tooltip: "Доля «валидных"
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-005"
+    name: "Овертаймы"
+    domain: "Результат"
+    unit: "шт. и %"
+    direction: "neutral"
+    minSample: 10
+    formula: "`N(matches с OT)`"
+    tooltip: "Матчи, ушедшие в овертайм. В OT статистика раундов помечается отдельно и по умолчанию в основные метрики не входит."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-006"
+    name: "Камбэки с 4+ раундов"
+    domain: "Результат"
+    unit: "%"
+    direction: "up"
+    minSample: 5
+    formula: "`N(win ∧ max_deficit ≥ 4) / N(win) × 100`"
+    tooltip: "Доля побед, добытых из отставания 4+ раундов. Считается по максимальному дефициту за матч."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-007"
+    name: "Средняя длительность"
+    domain: "Результат"
+    unit: "мин"
+    direction: "neutral"
+    minSample: 5
+    formula: "`median(match_duration)`"
+    tooltip: "Медианная длительность матча. Выбросы (> 90 мин) исключаются."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-008"
+    name: "Серия побед / поражений"
+    domain: "Результат"
+    unit: "матчи"
+    direction: "up"
+    minSample: 1
+    formula: "`current_streak`, `longest_win_streak`"
+    tooltip: "Текущая и рекордная серия. Текущая обнуляется при смене исхода."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-009"
+    name: "Прогноз победы до матча"
+    domain: "Результат"
+    unit: "%"
+    direction: "neutral"
+    minSample: 5
+    formula: "логистическая модель от средних рейтингов составов и карты: `p = 1 / (1 + e^(−z))`, `z = a + b·Δrating + c·map_edge`"
+    tooltip: "Оценка шанса победы до первого раунда. Не является вероятностью из букмекера; модель обучается на своих матчах и пересчитывается ежемесячно."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-010"
+    name: "Ожидаемое распределение счёта"
+    domain: "Результат"
+    unit: "% по счётам"
+    direction: "neutral"
+    minSample: 5
+    formula: "`P(score = s | p)` из биномиальной модели по раундам"
+    tooltip: "Вероятности конкретных счетов по модели. Используется для понимания, насколько матч был ожидаем."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-011"
+    name: "Разброс рейтингов лобби"
+    domain: "Результат"
+    unit: "пункты рейтинга"
+    direction: "neutral"
+    minSample: 1
+    formula: "`mean(rating_team) − mean(rating_enemy)`"
+    tooltip: "Средний рейтинг вашей команды минус средний рейтинг противника. Положительное значение — вы фаворит."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-012"
+    name: "Размер пати"
+    domain: "Результат"
+    unit: "человек"
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(тиммейты в одном лобби за последние 30 мин)`"
+    tooltip: "Сколько человек играли вместе с вами. Влияет на доверие к метрикам командного взаимодействия."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "RES-013"
+    name: "Формат матча"
+    domain: "Результат"
+    unit: "MR"
+    direction: "neutral"
+    minSample: 1
+    formula: "`MR12 | MR15 | Wingman | Other`"
+    tooltip: "Правила матча. MR12 — 13 раундов до победы, MR15 — 16. Метрики не смешиваются между форматами без пометки."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-007"
+    name: "Сезон Premier"
+    domain: "Контекст"
+    unit: "номер"
+    direction: "neutral"
+    minSample: 1
+    formula: "`season_id` из календаря Valve"
+    tooltip: "Сезон Premier. Позволяет смотреть прогресс внутри сезона, не смешивая разные мета-периоды."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-008"
+    name: "Режим"
+    domain: "Контекст"
+    unit: "категория"
+    direction: "neutral"
+    minSample: 1
+    formula: "`Premier | Competitive | Wingman | Casual | Other`"
+    tooltip: "Режим игры. Premier и Competitive не смешиваются по умолчанию."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-009"
+    name: "Сторона"
+    domain: "Контекст"
+    unit: "T / CT"
+    direction: "neutral"
+    minSample: 1
+    formula: "`side_at_round`"
+    tooltip: "Сторона раунда. Позволяет разделять атакующие и оборонительные метрики."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-010"
+    name: "Ранг и рейтинг"
+    domain: "Контекст"
+    unit: "Premier rating / FACEIT ELO"
+    direction: "neutral"
+    minSample: 1
+    formula: "`rating_before`, `rating_after`, `Δ`"
+    tooltip: "Рейтинг до и после матча. Δ — изменение. Для FACEIT хранится отдельно."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-011"
+    name: "Пиковый рейтинг"
+    domain: "Контекст"
+    unit: "пункты"
+    direction: "up"
+    minSample: 1
+    formula: "`max(rating_history)`"
+    tooltip: "Максимальный рейтинг за всё время наблюдения."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-012"
+    name: "Тип карты"
+    domain: "Контекст"
+    unit: "категория"
+    direction: "neutral"
+    minSample: 1
+    formula: "`defuse | hostage | wingman | other`"
+    tooltip: "Тип карты. Hostage-карты имеют другую логику объектива и не смешиваются с defuse."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "CTX-013"
+    name: "Направление карты"
+    domain: "Контекст"
+    unit: "категория"
+    direction: "neutral"
+    minSample: 1
+    formula: "`competitive_pool | reserve | workshop`"
+    tooltip: "Пул карты. Сравнение между пулами ограничено."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "KIL-001"
+    name: "Убийства"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "up"
+    minSample: 1
+    formula: "`Σ kills`"
+    tooltip: "Все убийства врагов. Тимкиллы и суициды не входят. Для темпа используется KPR, для вклада — ADR."
+    include: "убийства врагов, включая нож, зевс, гранаты."
+    exclude: "тимкиллы, самоубийства."
+    aggregation: "`Σ`"
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-002"
+    name: "Смерти"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "down"
+    minSample: 1
+    formula: "`Σ deaths`"
+    tooltip: "Все смерти. Смерть от тимкилла учитывается; смерть от мира — отдельно."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-003"
+    name: "Ассисты"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "up"
+    minSample: 1
+    formula: "`Σ assists`"
+    tooltip: "Ассисты по правилам игры (урон ≥ 40 без добивания). В метриках вклада заменяются damage assists."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-004"
+    name: "K/D"
+    domain: "Объём боя"
+    unit: "коэффициент"
+    direction: "up"
+    minSample: 30
+    formula: "`KD = K / max(D, 1)`"
+    tooltip: "Отношение убийств к смертям. Не учитывает контекст раунда, поэтому показывается рядом с рейтингом и KAST."
+    aggregation: "`ΣK / ΣD`"
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-005"
+    name: "Убийства за раунд (KPR)"
+    domain: "Объём боя"
+    unit: "шт./раунд"
+    direction: "up"
+    minSample: 30
+    formula: "`KPR = ΣK / ΣR`"
+    tooltip: "Сколько убийств вы делаете за раунд. Нормирует темп на длину матча."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-006"
+    name: "Смерти за раунд (DPR)"
+    domain: "Объём боя"
+    unit: "шт./раунд"
+    direction: "down"
+    minSample: 30
+    formula: "`DPR = ΣD / ΣR`"
+    tooltip: "Сколько раз вы умираете за раунд. Низкое значение — аккуратность, но может означать пассивность."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-007"
+    name: "Разница убийств"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "up"
+    minSample: 30
+    formula: "`K − D`"
+    tooltip: "Абсолютная разница убийств и смертей. Устойчивее K/D при малой выборке, но так же зависит от длины матчей."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-008"
+    name: "Доля убийств команды"
+    domain: "Объём боя"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`K_player / ΣK_team × 100`"
+    tooltip: "Какую часть убийств команды сделали вы. Зависит от роли: у энтри-фраггера доля выше."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-009"
+    name: "KAST"
+    domain: "Объём боя"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`KAST = N(раунды с K ∨ A ∨ S ∨ T) / ΣR × 100`"
+    tooltip: "Доля раундов, где вы сделали хотя бы одно из: убили, ассистировали, выжили, были обменены. Меряет стабильность участия, а не величину вклада."
+    include: "раунд с убийством, ассистом, выживанием или обменом смерти."
+    exclude: "раунды, где было несколько событий — считаются один раз."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-010"
+    name: "Урон"
+    domain: "Объём боя"
+    unit: "HP"
+    direction: "up"
+    minSample: 30
+    formula: "`Σ dmg_health` (с капом оверкилла 50 при агрегации вклада)"
+    tooltip: "Общий урон по врагам. Оверкилл сверх 50 HP не раздувает вклад, но входит в общий урон."
+    exclude: "урон по своим, урон в щит."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-011"
+    name: "ADR"
+    domain: "Объём боя"
+    unit: "HP/раунд"
+    direction: "up"
+    minSample: 30
+    formula: "`ADR = ΣDMG / ΣR`"
+    tooltip: "Средний урон за раунд. Главный показатель давления. 60–75 — средний уровень, 90+ — сильный."
+    include: "урон от пуль, гранат, огня, ножа."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-012"
+    name: "Урон за выстрел"
+    domain: "Объём боя"
+    unit: "HP/выстрел"
+    direction: "up"
+    minSample: 100
+    formula: "`DPS = ΣDMG / Σshots`"
+    tooltip: "Сколько урона приносит один выстрел. Смешивает точность и силу оружия, поэтому смотрится по классам оружия."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-013"
+    name: "Оверкилл"
+    domain: "Объём боя"
+    unit: "HP"
+    direction: "down"
+    minSample: 50
+    formula: "`Σ max(0, dmg − hp_victim_before)`"
+    tooltip: "Лишний урон сверх остатка HP. Высокий оверкилл — трата пуль, особенно на пистолетах."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-014"
+    name: "Headshot kills"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "up"
+    minSample: 30
+    formula: "`Σ kills с hitgroup=head`"
+    tooltip: "Убийства в голову. Не путать с долей попаданий в голову."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-015"
+    name: "Доля убийств в голову"
+    domain: "Объём боя"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`HSK = headshot_kills / kills × 100`"
+    tooltip: "Какая доля убийств завершена в голову. Зависит от оружия: у AWP и дробовиков ниже."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-016"
+    name: "Убийства в голову за раунд"
+    domain: "Объём боя"
+    unit: "шт./раунд"
+    direction: "up"
+    minSample: 30
+    formula: "`HSK / ΣR`"
+    tooltip: "Темп хедшотов. Устойчивее процента при разной длине матчей."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-017"
+    name: "Тимкиллы"
+    domain: "Объём боя"
+    unit: "шт. и %"
+    direction: "down"
+    minSample: 30
+    formula: "`N(kills по своим)`, `N / ΣR × 100`"
+    tooltip: "Убийства союзников. Особенно болезненны в клатчах и на пистолетных раундах."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-018"
+    name: "Самоубийства"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(suicide)`"
+    tooltip: "Смерти от мира: падение, огонь, бомба. Часто следствие плохого позиционирования."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-019"
+    name: "Убийства ножом / зевсом"
+    domain: "Объём боя"
+    unit: "шт. и на матч"
+    direction: "up"
+    minSample: 10
+    formula: "`Σ knife_kills`, `Σ zeus_kills`, делить на `N(matches)`"
+    tooltip: "Редкие убийства холодным оружием и зевсом. Показывают стиль и брейк экономики."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-020"
+    name: "Убийства через дым"
+    domain: "Объём боя"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 30
+    formula: "`N(kills, где линия огня пересекает активный смок)`, `N / kills × 100`"
+    tooltip: "Убийства по противнику, который был в дыму или за дымом. Требует трассировки и учёта объёма смока."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-021"
+    name: "Валлбенг-убийства"
+    domain: "Объём боя"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 30
+    formula: "`N(kills с пробитием геометрии)`, `N / kills × 100`"
+    tooltip: "Убийства через тонкую геометрию. Высокое значение — агрессивное простреливание и знание материала."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-022"
+    name: "Убийства в слепом состоянии"
+    domain: "Объём боя"
+    unit: "шт. и на матч"
+    direction: "up"
+    minSample: 10
+    formula: "`N(kills, где killer.flash_duration > 0)`, делить на `N(matches)`"
+    tooltip: "Убийства, совершённые, пока вы были ослеплены. Показатель памяти карты и слуха."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-023"
+    name: "Убийства в воздухе"
+    domain: "Объём боя"
+    unit: "шт. и на матч"
+    direction: "up"
+    minSample: 10
+    formula: "`N(kills, где `is_airborne` у убийцы)`, делить на `N(matches)`"
+    tooltip: "Убийства в прыжке/падении. Часто AWP-трюки и вышки."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-024"
+    name: "Убийства без прицеливания (noscope)"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`N(kills из AWP/SSG без `is_scoped` в момент выстрела)`"
+    tooltip: "Убийства из снайперки без зума. Считаются только для снайперского оружия."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-025"
+    name: "Доля убийств в голову по оружию"
+    domain: "Объём боя"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`headshot_kills_w / kills_w × 100`, для каждого `w`"
+    tooltip: "HS% конкретного оружия. Позволяет увидеть, что AK вы используете в голову, а M4 — в корпус."
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "KIL-026"
+    name: "Убийства на оружие"
+    domain: "Объём боя"
+    unit: "шт."
+    direction: "up"
+    minSample: 1
+    formula: "`Σ kills_w`"
+    tooltip: "Сколько убийств сделано каждым оружием. Основа для карточки «лучшее оружие"
+    sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
+    version: 1
+  - id: "ACC-001"
+    name: "Выстрелы"
+    domain: "Точность"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`Σ shots`"
+    tooltip: "Все выстрелы из огнестрела. Нужны как знаменатель точности и как мера объёма стрельбы."
+    exclude: "нож, зевс, гранаты, выстрелы в warmup."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-002"
+    name: "Попадания"
+    domain: "Точность"
+    unit: "шт."
+    direction: "up"
+    minSample: 1
+    formula: "`Σ hits`"
+    tooltip: "Выстрелы, попавшие в игрока или его щит. Используются только как числитель точности."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-003"
+    name: "Точность (все выстрелы)"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 100
+    formula: "`ACC = hits / shots × 100`"
+    tooltip: "Доля выстрелов, попавших в кого-либо. Включает прострелы и добивания. Не равна точности по увиденному врагу."
+    exclude: "выстрелы в дым/стену без видимости цели."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-004"
+    name: "Точность по увиденному врагу (spotted accuracy)"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`ACC_SPT = hits_spotted / shots_spotted × 100`"
+    tooltip: "Доля попаданий при реально видимой цели. Самая честная метрика аима: отсекает шум и слепую стрельбу."
+    include: "выстрелы, когда цель была видима по §4.2."
+    exclude: "стрельба по памяти, в дым, префайр без видимости."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-005"
+    name: "Точность первого выстрела"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 40
+    formula: "`ACC_FB = hits_first / shots_first × 100`"
+    tooltip: "Попадает ли первый выстрел. Прямо отражает crosshair placement и дисциплину стопа."
+    include: "только первый выстрел каждого энгейджмента."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-006"
+    name: "Точность спрея"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 60
+    formula: "`ACC_SPR = hits_spray / shots_spray × 100`, спрей = ≥ 3 выстрелов подряд"
+    tooltip: "Доля попаданий в серии из 3+ выстрелов. Показывает контроль отдачи, а не первый выстрел."
+    include: "винтовки, только по увиденному врагу."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-007"
+    name: "Контроль отдачи"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 60
+    formula: "`ACC_RCL = hits_after4 / shots_after4 × 100`"
+    tooltip: "Попадания на четвёртом и дальнейших выстрелах серии. Отделяет контроль паттерна от первого выстрела."
+    include: "4-й и последующие выстрелы спрея, винтовки."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-008"
+    name: "Точность по классу оружия"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`ACC_w = hits_w / shots_w × 100`, для класса `w`"
+    tooltip: "Точность по группе оружия. Нужна, чтобы сравнить, например, AK и M4 без смешивания с пистолетами."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-009"
+    name: "Точность по конкретному оружию"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`ACC_weapon`"
+    tooltip: "Точность конкретной пушки. Малые выборки помечаются; оружие с < 30 выстрелами скрывается в компактном режиме."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-010"
+    name: "Попадания в голову"
+    domain: "Точность"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`Σ hits с hitgroup=head`"
+    tooltip: "Попадания в модель головы. Не путать с убийствами в голову."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-011"
+    name: "Headshot accuracy"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`HSA = head_hits / hits × 100`"
+    tooltip: "Доля попаданий в голову среди всех попаданий. Точнее, чем HS% по убийствам, потому что не зависит от добиваний."
+    exclude: "попадания из AWP (как у Leetify) — опциональный переключатель."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-012"
+    name: "Распределение попаданий по зонам"
+    domain: "Точность"
+    unit: "%"
+    direction: "neutral"
+    minSample: 30
+    formula: "`hits_zone / hits × 100` для `head|chest|stomach|arms|legs`"
+    tooltip: "Куда именно вы попадаете. Помогает увидеть стрельбу в корпус и ноги вместо головы и груди."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-013"
+    name: "Урон за попадание"
+    domain: "Точность"
+    unit: "HP/попадание"
+    direction: "up"
+    minSample: 50
+    formula: "`ΣDMG / Σhits`"
+    tooltip: "Средний урон одного попадания. Зависит от зоны, оружия и дистанции; смотрится по оружию."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-014"
+    name: "Попаданий на убийство"
+    domain: "Точность"
+    unit: "попаданий/убийство"
+    direction: "down"
+    minSample: 30
+    formula: "`Σhits / Σkills`"
+    tooltip: "Сколько попаданий нужно на одно убийство. Низкое значение — эффективное оружие и хорошие зоны."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-015"
+    name: "Выстрелов на убийство"
+    domain: "Точность"
+    unit: "выстрелов/убийство"
+    direction: "down"
+    minSample: 30
+    formula: "`Σshots / Σkills`"
+    tooltip: "Сколько выстрелов тратится на убийство. Смешивает точность, контроль и выбор оружия."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-016"
+    name: "Выстрелов на энгейджмент"
+    domain: "Точность"
+    unit: "выстрелов/энгейджмент"
+    direction: "down"
+    minSample: 30
+    formula: "`Σshots / N(engagements)`"
+    tooltip: "Сколько пуль уходит на одного противника. Прямой ответ на вопрос «сколько я жму"
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-017"
+    name: "Пули до первого попадания"
+    domain: "Точность"
+    unit: "шт."
+    direction: "down"
+    minSample: 30
+    formula: "`median(shots_before_first_hit)`"
+    tooltip: "Сколько выстрелов проходит до первого попадания. 1 — попал сразу, 3+ — промахи по цели."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-018"
+    name: "Точность по дистанции"
+    domain: "Точность"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`hits_band / shots_band × 100`"
+    tooltip: "Точность на разных дистанциях. Провал на 1000+ — проблема с дальней стрельбой или выбором дистанции."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-019"
+    name: "Доля промахов"
+    domain: "Точность"
+    unit: "%"
+    direction: "down"
+    minSample: 100
+    formula: "`(shots − hits) / shots × 100`"
+    tooltip: "Дополнение к точности. Удобно для сортировки «худшие сначала"
+    derived: "`100 − ACC-003`"
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "ACC-020"
+    name: "Попадания в своего"
+    domain: "Точность"
+    unit: "шт. и %"
+    direction: "down"
+    minSample: 50
+    formula: "`Σ friendly_hits`, `% от всех попаданий`"
+    tooltip: "Сколько вы стреляете по союзникам. Отдельно от тимкиллов: попадание не всегда убивает."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-001"
+    name: "Preaim (угол до появления)"
+    domain: "Механика прицеливания"
+    unit: "градусы"
+    direction: "down"
+    minSample: 40
+    formula: "`PRE = median(angle(view_at_first_visible, vector_to_enemy_head))`"
+    tooltip: "Насколько прицел уже смотрел на голову врага, когда он появился. Меньше — лучше. Формула: медианный угол между направлением взгляда и вектором на голову в первый тик видимости."
+    include: "только первый тик видимости."
+    exclude: "выбросы > 90° и энгейджменты без выстрела."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-002"
+    name: "Crosshair placement (коррекция)"
+    domain: "Механика прицеливания"
+    unit: "градусы"
+    direction: "down"
+    minSample: 40
+    formula: "`CHP = median(angle(view_at_first_visible, view_at_first_hit))`"
+    tooltip: "Сколько градусов прицел прошёл от появления врага до первого попадания. Оценивает и стартовое положение, и моторику."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-003"
+    name: "Crosshair idle offset"
+    domain: "Механика прицеливания"
+    unit: "градусы"
+    direction: "down"
+    minSample: 200
+    formula: "`median(angle(view, vector_to_head_height_line))` по тикам без видимого врага"
+    tooltip: "Держите ли вы прицел на линии головы вне боя. Считается по тикам без контакта, только на «горячих"
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-004"
+    name: "Время до выстрела (TTS)"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 30
+    formula: "`TTS = median(t_first_shot − t_first_visible)`"
+    tooltip: "Сколько времени от появления врага до первого выстрела. Включает реакцию и решение, но не точность."
+    exclude: "TTS > 1000 мс (дисциплина/ожидание)."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-005"
+    name: "Время до первого урона (TTD)"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 30
+    formula: "`TTD = median(t_first_damage − t_first_visible)`"
+    tooltip: "Время от появления врага до первого урона. Не равно реакции: включает прицеливание, отдачу и темп оружия."
+    exclude: "TTD > 1000 мс."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-006"
+    name: "Время до убийства (TTK)"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 30
+    formula: "`TTK = median(t_kill − t_first_visible)`"
+    tooltip: "Время от появления цели до её смерти. Зависит от оружия и дистанции; смотрится по оружию."
+    exclude: "убийства после > 2 с видимости, если цель менялась."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-007"
+    name: "Время до наведения (TTA)"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 30
+    formula: "`TTA = median(t_angle_within_1deg − t_first_visible)`"
+    tooltip: "Сколько времени нужно, чтобы прицел оказался в пределах 1° от головы. Отделяет наведение от выстрела."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-008"
+    name: "Реакция"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 30
+    formula: "`median(t_first_view_change − t_first_visible)`, где изменение угла ≥ 0.5°"
+    tooltip: "Время до первого заметного движения прицела после появления врага. Ближе всего к чистой реакции, но включает префайр."
+    exclude: "энгейджменты, где игрок уже стрелял."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-009"
+    name: "Скорость флика"
+    domain: "Механика прицеливания"
+    unit: "°/с"
+    direction: "up"
+    minSample: 30
+    formula: "`median(Δangle / Δt)` на интервале до первого попадания"
+    tooltip: "Угловая скорость доводки. Высокая скорость при низкой точности — рывки; низкая при высокой — плавность."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-010"
+    name: "Дальность флика"
+    domain: "Механика прицеливания"
+    unit: "градусы"
+    direction: "neutral"
+    minSample: 30
+    formula: "`median(max_angle_delta)`"
+    tooltip: "Насколько большой угол пришлось доводить. Характеризует стиль: предаим versus реактивные флики."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-011"
+    name: "Время до остановки"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 30
+    formula: "`median(t_speed_below_34% − t_stop_start)`"
+    tooltip: "Сколько времени занимает погасить скорость перед выстрелом. Прямая мера контр-стрейфинга в моменте."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-012"
+    name: "Качество контр-стрейфинга"
+    domain: "Механика прицеливания"
+    unit: "%"
+    direction: "up"
+    minSample: 60
+    formula: "`good_shots / rifle_shots × 100`, good = скорость < 34% максимальной"
+    tooltip: "Доля выстрелов из винтовки, сделанных почти на месте (< 34% скорости). 34% — порог потери точности."
+    exclude: "выстрелы в приседе, пистолеты, дробовики."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-013"
+    name: "Скорость в момент выстрела"
+    domain: "Механика прицеливания"
+    unit: "% от max"
+    direction: "down"
+    minSample: 60
+    formula: "`median(speed_at_shot / max_speed × 100)`"
+    tooltip: "Насколько вы движетесь в момент выстрела. Ниже — точнее, но слишком низко может означать пассивность."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-014"
+    name: "Доля выстрелов в приседе"
+    domain: "Механика прицеливания"
+    unit: "%"
+    direction: "neutral"
+    minSample: 60
+    formula: "`shots_crouched / shots × 100`"
+    tooltip: "Как часто вы стреляете из приседа. Меняет профиль точности и уязвимости."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-015"
+    name: "Доля выстрелов в воздухе"
+    domain: "Механика прицеливания"
+    unit: "%"
+    direction: "down"
+    minSample: 60
+    formula: "`shots_airborne / shots × 100`"
+    tooltip: "Выстрелы в прыжке/падении. Обычно менее точны, кроме специальных приёмов."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-016"
+    name: "Длина серии"
+    domain: "Механика прицеливания"
+    unit: "выстрелов"
+    direction: "neutral"
+    minSample: 30
+    formula: "`median(consecutive_shots)`, распределение 1–2 / 3–5 / 6–10 / 11+"
+    tooltip: "Сколько выстрелов в типичной серии. Короткие серии — тэппинг, длинные — спрей."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-017"
+    name: "Время между выстрелами"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "neutral"
+    minSample: 100
+    formula: "`median(t_shot_next − t_shot)`"
+    tooltip: "Темп стрельбы. Сравнивается с темпом оружия: слишком редкий — потери, слишком частый — отдача."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-018"
+    name: "Время восстановления отдачи"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 20
+    formula: "`median(t_accuracy_reset − t_last_shot)`"
+    tooltip: "Сколько времени до возврата точности после серии. Показывает, умеете ли вы отпускать гашетку."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-019"
+    name: "Время перезарядки"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 20
+    formula: "`median(t_reload_end − t_reload_start)`"
+    tooltip: "Длительность перезарядки. Включает только полные циклы, прерванные не считаются."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-020"
+    name: "Смерти во время перезарядки"
+    domain: "Механика прицеливания"
+    unit: "шт. и %"
+    direction: "down"
+    minSample: 10
+    formula: "`N(deaths при is_reloading)`, `% от смертей`"
+    tooltip: "Смерти с пустым магазином. Частая причина — перезарядка в открытую."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-021"
+    name: "Смерти с гранатой в руке"
+    domain: "Механика прицеливания"
+    unit: "шт. и %"
+    direction: "down"
+    minSample: 10
+    formula: "`N(deaths, active_weapon ∈ grenades)`, `%`"
+    tooltip: "Смерти, когда в руках была граната. Показывает тайминг ютилити."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-022"
+    name: "Время до первого выстрела после выхода из-за угла"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 30
+    formula: "`median(t_first_shot − t_exit_cover)`"
+    tooltip: "Насколько быстро вы стреляете после выхода из укрытия. Штрафуется, если вы выходите и не стреляете."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-023"
+    name: "Процент «сухих» выходов"
+    domain: "Механика прицеливания"
+    unit: "%"
+    direction: "down"
+    minSample: 30
+    formula: "`N(выход из укрытия без выстрела за 500 мс) / N(выходов) × 100`"
+    tooltip: "Выходы без выстрела. Часто означают плохой предаим или лишний пик."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-024"
+    name: "Время до убийства по оружию"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 20
+    formula: "`TTK_w`"
+    tooltip: "TTK конкретного оружия. Позволяет увидеть, что AWP вы используете быстро, а AK — медленно."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-025"
+    name: "TTD по оружию"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 20
+    formula: "`TTD_w`"
+    tooltip: "TTD конкретного оружия. Нужен для сравнения пистолетов и винтовок без смешивания."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-026"
+    name: "TTS по оружию"
+    domain: "Механика прицеливания"
+    unit: "мс"
+    direction: "down"
+    minSample: 20
+    formula: "`TTS_w`"
+    tooltip: "TTS конкретного оружия. Показывает, насколько быстро вы начинаете бой с ним."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-027"
+    name: "Пули на противника по оружию"
+    domain: "Механика прицеливания"
+    unit: "выстрелов/энгейджмент"
+    direction: "down"
+    minSample: 20
+    formula: "`shots_weapon / engagements_weapon`"
+    tooltip: "Сколько пуль уходит на противника конкретным оружием. Ключевая метрика расточительности."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-028"
+    name: "Точность после первого промаха"
+    domain: "Механика прицеливания"
+    unit: "%"
+    direction: "up"
+    minSample: 40
+    formula: "`hits_after_miss / shots_after_miss × 100`"
+    tooltip: "Как вы восстанавливаетесь после промаха. Показывает устойчивость прицела."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-029"
+    name: "Паттерн отдачи (отклонение от идеала)"
+    domain: "Механика прицеливания"
+    unit: "градусы"
+    direction: "down"
+    minSample: 30
+    formula: "`median(angle(shot_dir, ideal_recoil_pattern_dir))`"
+    tooltip: "Насколько ваш реальный спрей отклоняется от идеального паттерна оружия. Требует эталонных паттернов."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "AIM-030"
+    name: "Вертикальный контроль отдачи"
+    domain: "Механика прицеливания"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`1 − median(|Δpitch_real − Δpitch_ideal|) / Δpitch_ideal`"
+    tooltip: "Насколько точно вы компенсируете подъём ствола. Отдельно от горизонтального контроля."
+    sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
+    version: 1
+  - id: "WPN-001"
+    name: "Использование оружия"
+    domain: "Оружие"
+    unit: "% выстрелов"
+    direction: "neutral"
+    minSample: 100
+    formula: "`shots_w / Σshots × 100`"
+    tooltip: "Доля выстрелов каждым оружием. Показывает реальный пул, а не купленное."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-002"
+    name: "Раунды с оружием"
+    domain: "Оружие"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 10
+    formula: "`N(rounds, где был хотя бы один выстрел из w)`"
+    tooltip: "В скольких раундах вы реально стреляли этим оружием."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-003"
+    name: "K/D оружием"
+    domain: "Оружие"
+    unit: "коэффициент"
+    direction: "up"
+    minSample: 20
+    formula: "`K_w / max(D_w, 1)`"
+    tooltip: "Убийства к смертям, когда в руках было это оружие. Смерти с другим оружием не входят."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-004"
+    name: "KPR оружием"
+    domain: "Оружие"
+    unit: "шт./раунд"
+    direction: "up"
+    minSample: 20
+    formula: "`K_w / rounds_w`"
+    tooltip: "Убийства за раунд с оружием. Нормирует на количество раундов."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-005"
+    name: "Урон на доллар"
+    domain: "Оружие"
+    unit: "HP/$"
+    direction: "up"
+    minSample: 1000
+    formula: "`ΣDMG_w / Σcost_w` (cost — цена оружия + патроны)"
+    tooltip: "Сколько урона приносит доллар, вложенный в оружие. Позволяет сравнивать экономическую эффективность."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-006"
+    name: "Убийства на доллар"
+    domain: "Оружие"
+    unit: "убийств/$1000"
+    direction: "up"
+    minSample: 20
+    formula: "`K_w / (Σcost_w / 1000)`"
+    tooltip: "Сколько убийств на каждую $1000, потраченную на оружие."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-007"
+    name: "Эффективная дистанция"
+    domain: "Оружие"
+    unit: "юниты"
+    direction: "neutral"
+    minSample: 30
+    formula: "`median(distance_at_hit)`"
+    tooltip: "Типичная дистанция попаданий оружием. Сравнивается с паспортной эффективной дистанцией."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-008"
+    name: "Промахи на дистанции (falloff)"
+    domain: "Оружие"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`miss_rate(distance_band)` для оружия"
+    tooltip: "Деградация точности с дистанцией. Помогает понять, где оружие перестаёт работать."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-009"
+    name: "Использование прицела / зума"
+    domain: "Оружие"
+    unit: "% выстрелов"
+    direction: "neutral"
+    minSample: 30
+    formula: "`shots_scoped / shots_sniper × 100`"
+    tooltip: "Доля выстрелов из снайперки в зуме. Низкое значение — много quickscope/noscope."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-010"
+    name: "Перезарядки на убийство"
+    domain: "Оружие"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`Σreloads / Σkills`"
+    tooltip: "Сколько раз вы перезаряжаетесь на одно убийство. Высокое — расточительность или плохой контроль магазина."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-011"
+    name: "Остаток патронов после убийства"
+    domain: "Оружие"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`median(ammo_after_kill)`"
+    tooltip: "Сколько патронов остаётся после убийства. Мало — риск быть без патронов в следующем контакте."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-012"
+    name: "Wasted magazine ammo"
+    domain: "Оружие"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`wasted / magazine_size × 100`, wasted = патроны, выброшенные перезарядкой"
+    tooltip: "Доля магазина, выброшенная при перезарядке. 0% — перезарядка в пустоту, 100% — полный магазин в мусор."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-013"
+    name: "Лучшее оружие"
+    domain: "Оружие"
+    unit: "weapon_id"
+    direction: "neutral"
+    minSample: 20
+    formula: "`argmax(impact_w)`; impact = z(K/D) + z(ADR_w) + z(HSK_w)"
+    tooltip: "Оружие с лучшим сочетанием K/D, урона и хедшотов при достаточной выборке. Не обязательно самое используемое."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-014"
+    name: "Худшее оружие"
+    domain: "Оружие"
+    unit: "weapon_id"
+    direction: "neutral"
+    minSample: 20
+    formula: "`argmin(impact_w)`"
+    tooltip: "Оружие с худшим impact при достаточной выборке. Кандидат на тренировку."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-015"
+    name: "Стоимость скинов в матче"
+    domain: "Оружие"
+    unit: "$"
+    direction: "neutral"
+    minSample: 1
+    formula: "`Σ price(skin) по использованному оружию`"
+    tooltip: "Суммарная рыночная стоимость скинов, которые были в игре. Косметика, не влияние."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-016"
+    name: "Убийства подобранным оружием"
+    domain: "Оружие"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`N(kills, где weapon.original_owner ≠ player)`"
+    tooltip: "Убийства оружием, подобранным с земли. Показывает экономию и умение играть чужими пушками."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-017"
+    name: "Доля убийств из пистолетов"
+    domain: "Оружие"
+    unit: "%"
+    direction: "neutral"
+    minSample: 30
+    formula: "`pistol_kills / kills × 100`"
+    tooltip: "Какая часть убийств сделана пистолетами. Высокая доля — много пистолетных раундов или стиль."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-018"
+    name: "Доля убийств из снайперок"
+    domain: "Оружие"
+    unit: "%"
+    direction: "neutral"
+    minSample: 30
+    formula: "`sniper_kills / kills × 100`"
+    tooltip: "Доля снайперских убийств. Определяет, являетесь ли вы AWP-игроком."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-019"
+    name: "Доля убийств из SMG"
+    domain: "Оружие"
+    unit: "%"
+    direction: "neutral"
+    minSample: 30
+    formula: "`smg_kills / kills × 100`"
+    tooltip: "Доля убийств из SMG. Часто связана с анти-эко и агрессией."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-020"
+    name: "Доля убийств из дробовиков"
+    domain: "Оружие"
+    unit: "%"
+    direction: "neutral"
+    minSample: 30
+    formula: "`heavy_kills / kills × 100`"
+    tooltip: "Доля убийств из тяжёлого оружия. Показывает пристрастие к ближнему бою."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-021"
+    name: "Первый выстрел в голову по оружию"
+    domain: "Оружие"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`first_hits_head_w / first_hits_w × 100`"
+    tooltip: "Как часто первый же выстрел оружием приходит в голову. Самая чистая связка предаима и оружия."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-022"
+    name: "Убийства на 100 выстрелов"
+    domain: "Оружие"
+    unit: "убийств/100"
+    direction: "up"
+    minSample: 100
+    formula: "`K_w / shots_w × 100`"
+    tooltip: "Сколько убийств приносит сотня выстрелов. Интегральная эффективность оружия."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-023"
+    name: "Попадания в голову оружием"
+    domain: "Оружие"
+    unit: "% попаданий"
+    direction: "up"
+    minSample: 30
+    formula: "`head_hits_w / hits_w × 100`"
+    tooltip: "Доля попаданий в голову конкретным оружием. Для AK и Deagle особенно показательна."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-024"
+    name: "Серии из 3+ выстрелов оружием"
+    domain: "Оружие"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 20
+    formula: "`N(sprays_w)`"
+    tooltip: "Сколько длинных серий сделано оружием. Показывает, где вы спреите, а где тэпаете."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "WPN-025"
+    name: "Смерти с оружием"
+    domain: "Оружие"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`D_w`"
+    tooltip: "Смерти, когда оружие было в руках. Нужны для K/D по оружию и для понимания слабых пушек."
+    sources: ["CSStats", "Scope"]
+    version: 1
+  - id: "UTL-001"
+    name: "Брошено гранат"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 20
+    formula: "`Σ grenades_thrown`"
+    tooltip: "Все брошенные гранаты всех типов. База для нормировки остальных метрик."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-002"
+    name: "Гранат за раунд"
+    domain: "Ютилити"
+    unit: "шт./раунд"
+    direction: "up"
+    minSample: 20
+    formula: "`Σthrown / ΣR`"
+    tooltip: "Сколько гранат вы используете за раунд. 3+ считается высоким util-объёмом."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-003"
+    name: "Использовано из купленного"
+    domain: "Ютилити"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`used / bought × 100`"
+    tooltip: "Доля купленных гранат, которые вы реально бросили. Низкое — деньги на ветер."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-004"
+    name: "Флешки брошены"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 10
+    formula: "`Σ flashes`"
+    tooltip: "Количество брошенных флешек. Само по себе не говорит о качестве."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-005"
+    name: "Врагов ослеплено"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`Σ enemies_flashed`"
+    tooltip: "Сколько врагов получили полный блайнд (≥1.1 с). Частичные и «спиной"
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-006"
+    name: "Врагов ослеплено за флешку"
+    domain: "Ютилити"
+    unit: "чел./флешка"
+    direction: "up"
+    minSample: 20
+    formula: "`enemies_flashed / flashes`"
+    tooltip: "Средняя эффективность флешки по врагам. Максимум 5; 0.5–1 — хороший уровень."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-007"
+    name: "Врагов ослеплено полностью за флешку"
+    domain: "Ютилити"
+    unit: "чел./флешка"
+    direction: "up"
+    minSample: 20
+    formula: "`enemies_fulled / flashes`"
+    tooltip: "Сколько врагов получили полный блайнд от одной флешки. Строже, чем общий показатель."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-008"
+    name: "Своих ослеплено за флешку"
+    domain: "Ютилити"
+    unit: "чел./флешка"
+    direction: "down"
+    minSample: 20
+    formula: "`friends_flashed / flashes`"
+    tooltip: "Сколько союзников (включая себя) вы слепите одной флешкой. Высокое — рискованная флешка."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-009"
+    name: "Самоослепления"
+    domain: "Ютилити"
+    unit: "шт. и %"
+    direction: "down"
+    minSample: 20
+    formula: "`N(self_flashed)`, `% от флешек`"
+    tooltip: "Флешки, ослепившие вас самих. Часто результат броска в стену или позднего пика."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-010"
+    name: "Полная слепота союзников"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(teammate_full_flash)`"
+    tooltip: "Случаи, когда союзник получил полный блайнд от вашей флешки. Опаснее частичного."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-011"
+    name: "Общее время слепоты врагов"
+    domain: "Ютилити"
+    unit: "сек"
+    direction: "up"
+    minSample: 20
+    formula: "`Σ blind_duration_enemies`"
+    tooltip: "Суммарная длительность ослепления врагов. Абсолютный объём, не нормированный."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-012"
+    name: "Время слепоты на флешку"
+    domain: "Ютилити"
+    unit: "сек/флешка"
+    direction: "up"
+    minSample: 20
+    formula: "`Σduration / flashes`"
+    tooltip: "Сколько секунд слепоты приносит одна флешка. Сравнивается с бенчмарком ранга."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-013"
+    name: "Флеш-ассисты"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`Σ flash_assists`"
+    tooltip: "Ассисты по правилам демки. В отличие от игрового счётчика, включает и ваши добивания ослеплённого."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-014"
+    name: "Полезные флеш-ассисты"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`Σ impactful_assists`, impactful = блайнд ≥ 1.1 с и килл в течение 3 с"
+    tooltip: "Флеш-ассисты, которые реально привели к убийству в короткое окно."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-015"
+    name: "Флешки, приведшие к убийству"
+    domain: "Ютилити"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`N(flashes → kill) / flashes × 100`"
+    tooltip: "Доля флешек, после которых был убит ослеплённый враг. Не путать с ассистом."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-016"
+    name: "Эффективные флешки"
+    domain: "Ютилити"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 20
+    formula: "`N(blind ≥ 1.1 s)`, `%`"
+    tooltip: "Флешки, давшие полный блайнд. Используется для классификации «эффективная/пустая"
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-017"
+    name: "Пустые флешки"
+    domain: "Ютилити"
+    unit: "шт. и %"
+    direction: "down"
+    minSample: 20
+    formula: "`flashes − effective`, `%`"
+    tooltip: "Флешки без полного блайнда. Обычно брошены в стену, слишком рано или мимо."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-018"
+    name: "Смоки брошены"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 10
+    formula: "`Σ smokes`"
+    tooltip: "Количество брошенных смоков."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-019"
+    name: "Смоки за раунд"
+    domain: "Ютилити"
+    unit: "шт./раунд"
+    direction: "up"
+    minSample: 20
+    formula: "`Σsmokes / ΣR`"
+    tooltip: "Смоков за раунд. Высокий уровень в среднем 0.7–1.2 для CT."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-020"
+    name: "Смоки, остановившие пуш"
+    domain: "Ютилити"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`good_smokes / smokes_CT × 100`, good = враг в радиусе 800 юнитов от центра смока в момент раскрытия"
+    tooltip: "Доля CT-смоков, накрывших реальное давление. Смок в пустоту не считается."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-021"
+    name: "Покрытие смока"
+    domain: "Ютилити"
+    unit: "юниты²"
+    direction: "neutral"
+    minSample: 10
+    formula: "`median(area_covered)`"
+    tooltip: "Площадь, реально перекрытая смоком с учётом геометрии. Показывает качество лайнапа."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-022"
+    name: "Смоки, поставленные на выход"
+    domain: "Ютилити"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`smokes_on_exec / smokes_T × 100`"
+    tooltip: "Доля T-смоков, поставленных в первые 10 с раунда на точку. Характеризует структурность."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-023"
+    name: "HE брошены"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 10
+    formula: "`Σ HE`"
+    tooltip: "Количество HE-гранат."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-024"
+    name: "Урон врагам за HE"
+    domain: "Ютилити"
+    unit: "HP/HE"
+    direction: "up"
+    minSample: 15
+    formula: "`Σdmg_foe_HE / ΣHE`"
+    tooltip: "Средний урон врагам одной HE. Учитывается только реальный урон, не оверкилл."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-025"
+    name: "Урон союзникам за HE"
+    domain: "Ютилити"
+    unit: "HP/HE"
+    direction: "down"
+    minSample: 15
+    formula: "`Σdmg_friend_HE / ΣHE`"
+    tooltip: "Средний урон своим от HE. 0–1 — аккуратно, 3+ — опасно."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-026"
+    name: "Убийства HE"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`ΣHE_kills`"
+    tooltip: "Добивания гранатой. Часто результат подготовки урона."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-027"
+    name: "Молотовы брошены"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 10
+    formula: "`Σ molotovs`"
+    tooltip: "Количество зажигательных гранат."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-028"
+    name: "Урон огнём"
+    domain: "Ютилити"
+    unit: "HP"
+    direction: "up"
+    minSample: 15
+    formula: "`Σ fire_damage`"
+    tooltip: "Урон врагам от огня. Включает и урон после вашей смерти, если граната ваша."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-029"
+    name: "Урон огнём за молотов"
+    domain: "Ютилити"
+    unit: "HP/молотов"
+    direction: "up"
+    minSample: 15
+    formula: "`fire_damage / molotovs`"
+    tooltip: "Средний урон одним молотовым. Показывает качество зон контроля."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-030"
+    name: "Огонь по своим"
+    domain: "Ютилити"
+    unit: "HP и HP/молотов"
+    direction: "down"
+    minSample: 15
+    formula: "`friendly_fire_damage`, `/ molotovs`"
+    tooltip: "Урон союзникам огнём. Особенно больно в узких проходах."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-031"
+    name: "Площадь молотова"
+    domain: "Ютилити"
+    unit: "юниты²"
+    direction: "neutral"
+    minSample: 10
+    formula: "`median(area_covered)`"
+    tooltip: "Площадь огня. Крупная площадь не всегда полезна: важнее перекрыть нужный проход."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-032"
+    name: "Декой брошены"
+    domain: "Ютилити"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 5
+    formula: "`Σ decoys`"
+    tooltip: "Количество деков. В CS2 декой почти не используется, поэтому показывается отдельно."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-033"
+    name: "Неиспользованная граната на смерть"
+    domain: "Ютилити"
+    unit: "$"
+    direction: "down"
+    minSample: 20
+    formula: "`Σ value(utility_on_death) / deaths`"
+    tooltip: "Средняя стоимость гранат в момент смерти. Показывает, доносите ли вы ютилити до боя."
+    derived: "`UTL-034 / deaths`"
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-034"
+    name: "Стоимость неиспользованного ютилити"
+    domain: "Ютилити"
+    unit: "$"
+    direction: "down"
+    minSample: 20
+    formula: "`Σ (smoke×300 + HE×300 + flash×200 + molotov×400 + decoy×50) на смерть`"
+    tooltip: "Деньги, потерянные с непушенными гранатами. Суммируется по всем смертям."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-035"
+    name: "Доля раундов с гранатой в руке на смерть"
+    domain: "Ютилити"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`N(deaths с гранатой в руке) / deaths × 100`"
+    tooltip: "Как часто вы умираете с гранатой. Связано с таймингом ютилити и пиками."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-036"
+    name: "Качество ютилити"
+    domain: "Ютилити"
+    unit: "рейтинг 0–100"
+    direction: "up"
+    minSample: 100
+    formula: "`z-среднее` от эффективности флешек, урона HE/молотова, покрытия смоков и штрафа за своих"
+    tooltip: "Композит качества: насколько полезна каждая граната. Не зависит от количества."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-037"
+    name: "Количество ютилити"
+    domain: "Ютилити"
+    unit: "рейтинг 0–100"
+    direction: "up"
+    minSample: 20
+    formula: "`clamp(grenades_per_round / 3 × 100, 0, 100)`"
+    tooltip: "Оценка объёма: 3+ гранаты за раунд дают 100. Качество считается отдельно."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-038"
+    name: "Общий utility rating"
+    domain: "Ютилити"
+    unit: "рейтинг 0–100"
+    direction: "up"
+    minSample: 100
+    formula: "`sqrt(quality × quantity)`"
+    tooltip: "Геометрическое среднее качества и количества. Провал в одном компоненте тянет вниз весь рейтинг."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-039"
+    name: "Гранат на доллар"
+    domain: "Ютилити"
+    unit: "шт./$1000"
+    direction: "up"
+    minSample: 20
+    formula: "`grenades / (utility_cost / 1000)`"
+    tooltip: "Сколько гранат на каждую $1000. Показывает, покупаете ли вы ютилити вообще."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "UTL-040"
+    name: "Урон ютилити за раунд"
+    domain: "Ютилити"
+    unit: "HP/раунд"
+    direction: "up"
+    minSample: 20
+    formula: "`ΣHE+fire_damage / ΣR`"
+    tooltip: "Гранатный урон за раунд. Часть ADR, но отдельно показывает вклад гранат."
+    sources: ["Leetify", "Scope", "CSStats", "Refrag"]
+    version: 1
+  - id: "ECO-001"
+    name: "Стоимость экипировки на старте раунда"
+    domain: "Экономика"
+    unit: "$"
+    direction: "neutral"
+    minSample: 10
+    formula: "`median(equip_value_start)`; командный — `Σ` пяти игроков"
+    tooltip: "Сколько денег вложено в снаряжение на старте раунда. Основа классификации закупа."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-002"
+    name: "Кэш на старте раунда"
+    domain: "Экономика"
+    unit: "$"
+    direction: "neutral"
+    minSample: 10
+    formula: "`median(cash_start)`"
+    tooltip: "Свободные деньги на старте. Сопоставляется с ценой закупа."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-003"
+    name: "Потрачено за раунд"
+    domain: "Экономика"
+    unit: "$/раунд"
+    direction: "neutral"
+    minSample: 10
+    formula: "`Σcash_spent / ΣR`"
+    tooltip: "Средние траты за раунд. Показывает экономическую агрессию."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-004"
+    name: "Тип закупа"
+    domain: "Экономика"
+    unit: "категория"
+    direction: "neutral"
+    minSample: 10
+    formula: "класс из §4.8; распределение `% раундов`"
+    tooltip: "Распределение раундов по типу закупа: пистолет, эко, полу-эко, форс, фулл-бай. Сумма 100%."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-005"
+    name: "Доля фулл-баев"
+    domain: "Экономика"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`full_buy_rounds / rounds × 100`"
+    tooltip: "Как часто команда может позволить полный закуп. Низкое — экономика в минусе."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-006"
+    name: "Доля эко"
+    domain: "Экономика"
+    unit: "%"
+    direction: "neutral"
+    minSample: 10
+    formula: "`eco_rounds / rounds × 100`"
+    tooltip: "Доля эко-раундов. Сама по себе не плоха: эко после проигранного пистолета — норма."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-007"
+    name: "Win rate пистолетных раундов"
+    domain: "Экономика"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`pistol_wins / pistol_rounds × 100`"
+    tooltip: "Победы в пистолетных. Дают экономический старт половины."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-008"
+    name: "Win rate анти-эко"
+    domain: "Экономика"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`anti_eco_wins / anti_eco_rounds × 100`"
+    tooltip: "Победы в раундах, где у вас фулл, а у врага эко. Провалы здесь — самый дорогой тип ошибок."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-009"
+    name: "Win rate форс-баев"
+    domain: "Экономика"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`force_wins / force_rounds × 100`"
+    tooltip: "Победы в форс-раундах. Показывает качество игры без полного снаряжения."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-010"
+    name: "Win rate фулл-баев"
+    domain: "Экономика"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`full_wins / full_rounds × 100`"
+    tooltip: "Победы при полном закупе. Базовый уровень реализуемости экономики."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-011"
+    name: "Деньги на смерть"
+    domain: "Экономика"
+    unit: "$"
+    direction: "down"
+    minSample: 20
+    formula: "`median(cash_at_death)`"
+    tooltip: "Сколько денег остаётся при смерти. Большие суммы — неиспользованный потенциал."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-012"
+    name: "Стоимость потерянной экипировки"
+    domain: "Экономика"
+    unit: "$"
+    direction: "down"
+    minSample: 20
+    formula: "`Σ equip_value_at_death`"
+    tooltip: "Стоимость снаряжения, потерянного при смертях. Считается по фактической экипировке."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-013"
+    name: "Эффективность экипировки"
+    domain: "Экономика"
+    unit: "HP/$1000"
+    direction: "up"
+    minSample: 10
+    formula: "`ΣAD` (урон) `/ (Σequip_value / 1000)`"
+    tooltip: "Сколько урона приносит каждая $1000 экипировки. Показывает отдачу от закупа."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-014"
+    name: "Сейв-рейт"
+    domain: "Экономика"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`survived_lost_rounds / lost_rounds × 100`"
+    tooltip: "Как часто вы сохраняетесь в проигранных раундах. Высокое — дисциплина, но может быть пассивность."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-015"
+    name: "Стоимость сохранённого"
+    domain: "Экономика"
+    unit: "$/сейв"
+    direction: "up"
+    minSample: 10
+    formula: "`Σ saved_value / saves`"
+    tooltip: "Сколько денег вы сохраняете за один сейв. AWP весит больше AK."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-016"
+    name: "Деньги заработано"
+    domain: "Экономика"
+    unit: "$/раунд"
+    direction: "up"
+    minSample: 20
+    formula: "`Σcash_earned / ΣR`"
+    tooltip: "Средний доход за раунд: убийства, цели, лосс-бонус. Показывает экономический темп."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-017"
+    name: "Деньги за убийство"
+    domain: "Экономика"
+    unit: "$/убийство"
+    direction: "up"
+    minSample: 30
+    formula: "`Σkill_reward / ΣK`"
+    tooltip: "Средняя награда за убийство. Зависит от оружия: SMG и дробовики платят больше."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-018"
+    name: "Лосс-бонус"
+    domain: "Экономика"
+    unit: "$/раунд"
+    direction: "neutral"
+    minSample: 10
+    formula: "`median(loss_bonus)`"
+    tooltip: "Средний лосс-бонус. Растёт с серией поражений и определяет силу следующих закупов."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-019"
+    name: "Экономический индекс"
+    domain: "Экономика"
+    unit: "z-оценка"
+    direction: "up"
+    minSample: 20
+    formula: "`z(equip_value) + z(cash) − z(lost_value)`"
+    tooltip: "Сводная оценка экономического состояния. Положительное — вы впереди по деньгам и снаряжению."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ECO-020"
+    name: "Провалы анти-эко"
+    domain: "Экономика"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(anti_eco_losses)`"
+    tooltip: "Сколько анти-эко проиграно. Каждый такой раунд — подарок врагу."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "ENT-001"
+    name: "Попытки опенинга"
+    domain: "Опенинг-дуэли"
+    unit: "шт. и % раундов"
+    direction: "neutral"
+    minSample: 30
+    formula: "`N(opening_duels)`, `N / ΣR × 100`"
+    tooltip: "Сколько раз вы участвовали в первом килле раунда. Показывает агрессию и роль."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-002"
+    name: "Победы в опенинге"
+    domain: "Опенинг-дуэли"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`N(opening_wins)`"
+    tooltip: "Первые киллы раунда. Один из самых сильных предикторов победы."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-003"
+    name: "Поражения в опенинге"
+    domain: "Опенинг-дуэли"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(opening_losses)`"
+    tooltip: "Первые смерти раунда."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-004"
+    name: "Win rate опенингов"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`opening_wins / opening_duels × 100`"
+    tooltip: "Доля выигранных первых дуэлей. 50% — паритет, 60%+ — сильный энтри."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-005"
+    name: "Опенинг-рейтинг"
+    domain: "Опенинг-дуэли"
+    unit: "± очки"
+    direction: "up"
+    minSample: 20
+    formula: "`Σ win_probability_swing` по опенингам (модель §IMP-LEET)"
+    tooltip: "Вклад опенингов в вероятность победы. Учитывает экономику и счёт, а не только факт килла."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-006"
+    name: "Опенинги без обмена"
+    domain: "Опенинг-дуэли"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 20
+    formula: "`N(opening_wins без немедленного трейда)`, `%`"
+    tooltip: "Первые киллы, которые враг не обменял. Дают реальное численное преимущество."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-007"
+    name: "Обменённые опенинги"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`N(opening_wins, обменённые в 4 с) / opening_wins × 100`"
+    tooltip: "Доля ваших первых киллов, которые враг сразу обменял. Ценность такого опенинга ниже."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-008"
+    name: "Первые смерти"
+    domain: "Опенинг-дуэли"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(first_deaths)`"
+    tooltip: "Сколько раз вы умирали первым в раунде. Учитывается и опенинг, и пассивная смерть до контакта."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-009"
+    name: "FK/FD"
+    domain: "Опенинг-дуэли"
+    unit: "коэффициент"
+    direction: "up"
+    minSample: 20
+    formula: "`FK / max(FD, 1)`"
+    tooltip: "Первые киллы к первым смертям. Компактный показатель опенинга, но зависит от роли."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-010"
+    name: "Доля первых киллов команды"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`FK_player / FK_team × 100`"
+    tooltip: "Какую часть первых киллов команды сделали вы."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-011"
+    name: "Опенинги на T"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "neutral"
+    minSample: 15
+    formula: "`T_opening_wins / T_opening_duels × 100`"
+    tooltip: "Win rate первых дуэлей на атаке. Характеризует вход на точку."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-012"
+    name: "Опенинги на CT"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "neutral"
+    minSample: 15
+    formula: "`CT_opening_wins / CT_opening_duels × 100`"
+    tooltip: "Win rate первых дуэлей в защите. Характеризует агрессивные пики и холды."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-013"
+    name: "Лучшее оружие опенингов"
+    domain: "Опенинг-дуэли"
+    unit: "weapon_id"
+    direction: "neutral"
+    minSample: 10
+    formula: "`argmax(opening_win_rate_w)`"
+    tooltip: "Оружие с лучшим процентом выигранных опенингов при выборке ≥ 10."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-014"
+    name: "Чаще всего умираю от оружия"
+    domain: "Опенинг-дуэли"
+    unit: "weapon_id"
+    direction: "neutral"
+    minSample: 10
+    formula: "`argmax(deaths_by_weapon)`"
+    tooltip: "Оружие, от которого вы чаще всего умираете в опенингах. Кандидат на изменение позиции."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-015"
+    name: "Чаще всего убиваю в опенинге"
+    domain: "Опенинг-дуэли"
+    unit: "player"
+    direction: "neutral"
+    minSample: 5
+    formula: "`argmax(opening_kills_by_victim)`"
+    tooltip: "Противник, которого вы чаще всего открываете. Полезно для персональных дуэлей."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-016"
+    name: "Время опенинга"
+    domain: "Опенинг-дуэли"
+    unit: "сек"
+    direction: "neutral"
+    minSample: 20
+    formula: "`median(opening_kill_time)`"
+    tooltip: "Когда происходит первый килл раунда. Раннее — быстрый контакт, позднее — осторожность."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-017"
+    name: "Опенинги после флешки"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`N(opening, где у жертвы блайнд) / openings × 100`"
+    tooltip: "Доля первых дуэлей, начатых по ослеплённому врагу. Показывает связку ютилити и входа."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-018"
+    name: "Опенинги с преимуществом по оружию"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`N(opening, где cost_weapon_player > cost_weapon_enemy) / openings × 100`"
+    tooltip: "Как часто вы идёте в первый контакт с лучшим оружием. Помогает отделить скилл от экономики."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-019"
+    name: "Опенинг-импакт"
+    domain: "Опенинг-дуэли"
+    unit: "± pp"
+    direction: "up"
+    minSample: 30
+    formula: "`(WR_after_FK − WR_after_FD) × share` в пределах матча"
+    tooltip: "Насколько ваши первые киллы/смерти меняют винрейт раундов. Контекстная метрика, не абсолютная сила."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "ENT-020"
+    name: "Доля раундов с опенингом"
+    domain: "Опенинг-дуэли"
+    unit: "%"
+    direction: "neutral"
+    minSample: 30
+    formula: "`N(rounds с opening) / ΣR × 100`"
+    tooltip: "Как часто раунд вообще доходит до первого килла с вашим участием."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-001"
+    name: "Возможности трейда"
+    domain: "Трейды"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`N(death teammate, где вы в 400 юнитах и живы)`"
+    tooltip: "Сколько раз вы были рядом и могли обменять смерть союзника."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-002"
+    name: "Попытки трейда"
+    domain: "Трейды"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 20
+    formula: "`N(attempt)`, `attempts / opportunities × 100`"
+    tooltip: "Сколько раз вы реально пошли на обмен. Процент показывает готовность трейдить."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-003"
+    name: "Успешные трейды"
+    domain: "Трейды"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 20
+    formula: "`N(trade_kill)`, `successes / attempts × 100`"
+    tooltip: "Сколько попыток закончились убийством убийцы союзника."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-004"
+    name: "Трейд-киллы"
+    domain: "Трейды"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`Σ trade_kills`"
+    tooltip: "Убийства, обменявшие смерть союзника в течение 4 с."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-005"
+    name: "Доля трейд-киллов"
+    domain: "Трейды"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`trade_kills / kills × 100`"
+    tooltip: "Какая часть убийств — обмены. Высокая доля у саппортов и вторых номеров."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-006"
+    name: "Возможности быть обменённым"
+    domain: "Трейды"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 20
+    formula: "`N(deaths, где союзник мог обменять)`"
+    tooltip: "Смерти, после которых у союзника была возможность вас обменять."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-007"
+    name: "Попытки обмена вашей смерти"
+    domain: "Трейды"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 20
+    formula: "`N(teammate_attempt)`, `%`"
+    tooltip: "Как часто союзники пытались вас обменять."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-008"
+    name: "Обменянные смерти"
+    domain: "Трейды"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 20
+    formula: "`N(death_traded)`, `%`"
+    tooltip: "Доля смертей, которые союзники обменяли. Высокая — вы играете рядом."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-009"
+    name: "Необменянные смерти"
+    domain: "Трейды"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`1 − traded_death_rate`"
+    tooltip: "Доля смертей без обмена. Высокая — оторванность от команды или плохие позиции."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-010"
+    name: "Средняя дистанция трейда"
+    domain: "Трейды"
+    unit: "юниты"
+    direction: "down"
+    minSample: 15
+    formula: "`median(distance_killer_to_avenger_at_death)`"
+    tooltip: "Насколько далеко был союзник в момент обмена. Большая дистанция — растянутая игра."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-011"
+    name: "Время до трейда"
+    domain: "Трейды"
+    unit: "мс"
+    direction: "down"
+    minSample: 15
+    formula: "`median(t_trade_kill − t_death)`"
+    tooltip: "Скорость обмена. Быстрый трейд сложнее сорвать."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-012"
+    name: "Доля трейдов с преимуществом"
+    domain: "Трейды"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`N(trade, после которого соотношение живых не хуже 4v4) / trades × 100`"
+    tooltip: "Полезные трейды: обмен не ухудшил численный баланс."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-013"
+    name: "Трейды в опенинге"
+    domain: "Трейды"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 15
+    formula: "`N(openings, обменённые в 4 с)`, `%`"
+    tooltip: "Как часто первый килл врага сразу обменивается. Снижает урон от проигранного опенинга."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-014"
+    name: "Трейды на T"
+    domain: "Трейды"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`trade_rate_T`"
+    tooltip: "Обменянные смерти на атаке. Показывает плотность входа."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-015"
+    name: "Трейды на CT"
+    domain: "Трейды"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`trade_rate_CT`"
+    tooltip: "Обменянные смерти в защите. Показывает поддержку холдов и ретейков."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-016"
+    name: "Трейд-роль"
+    domain: "Трейды"
+    unit: "индекс"
+    direction: "neutral"
+    minSample: 30
+    formula: "`z(trade_kill_share) + z(traded_death_rate) − z(untraded_death_rate)`"
+    tooltip: "Насколько вы включены в обмены с обеих сторон. Высокий индекс — командный игрок."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-017"
+    name: "Потери без обмена"
+    domain: "Трейды"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`untraded_deaths`"
+    tooltip: "Смерти, которые никто не обменял. Абсолютный счётчик потерь."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-018"
+    name: "Трейд-эффективность"
+    domain: "Трейды"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`trade_kills / trade_opportunities × 100`"
+    tooltip: "Какая доля возможностей завершилась вашим трейдом. Интегральная метрика."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-019"
+    name: "Байт-индекс"
+    domain: "Трейды"
+    unit: "±"
+    direction: "neutral"
+    minSample: 30
+    formula: "`traded_death_rate − untraded_death_rate`"
+    tooltip: "Положительное — вас чаще обменивают, отрицательное — вы чаще умираете в одиночку."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "TRD-020"
+    name: "Трейды с флешкой"
+    domain: "Трейды"
+    unit: "%"
+    direction: "up"
+    minSample: 15
+    formula: "`N(trade, где убийца ослеплён) / trades × 100`"
+    tooltip: "Доля обменов, выполненных по ослеплённому врагу. Показывает связку трейда и ютилити."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-001"
+    name: "Попытки клатча"
+    domain: "Клатчи"
+    unit: "шт. и % раундов"
+    direction: "neutral"
+    minSample: 15
+    formula: "`N(rounds, где вы последний живой)`, `%`"
+    tooltip: "Сколько раз вы оставались последним живым. Клатч-попытка, а не победа."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-002"
+    name: "Победы в клатчах"
+    domain: "Клатчи"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σ clutch_wins`"
+    tooltip: "Выигранные раунды в одиночку против 1+."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-003"
+    name: "Поражения в клатчах"
+    domain: "Клатчи"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`Σ clutch_losses`"
+    tooltip: "Проигранные клатчи."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-004"
+    name: "Win rate клатчей"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`wins / attempts × 100`"
+    tooltip: "Доля выигранных клатчей всех размеров. Средний уровень сильно зависит от 1v1."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-005"
+    name: "Win rate 1v1"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`wins_1v1 / attempts_1v1 × 100`"
+    tooltip: "Победы в дуэлях 1v1. Самая частая и самая важная категория клатчей."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-006"
+    name: "Win rate 1v2"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`wins_1v2 / attempts_1v2 × 100`"
+    tooltip: "Победы 1v2. Требует использования укрытий и разделения врагов."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-007"
+    name: "Win rate 1v3"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 8
+    formula: "`wins_1v3 / attempts_1v3 × 100`"
+    tooltip: "Победы 1v3. Редкая, но очень ценная категория."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-008"
+    name: "Win rate 1v4"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 5
+    formula: "`wins_1v4 / attempts_1v4 × 100`"
+    tooltip: "Победы 1v4. Обычно возможны на пост-планте или при разрозненности врагов."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-009"
+    name: "Win rate 1v5"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 3
+    formula: "`wins_1v5 / attempts_1v5 × 100`"
+    tooltip: "Победы 1v5. Самая редкая категория, часто на пистолетных."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-010"
+    name: "Клатч-рейт"
+    domain: "Клатчи"
+    unit: "± очки"
+    direction: "up"
+    minSample: 10
+    formula: "`Σ (win_prob_after_gain)` по клатчам, нормировано на раунды"
+    tooltip: "Вклад клатчей в вероятность победы. Учитывает исходный дисбаланс, а не только винрейт."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-011"
+    name: "Сейв-рейт в клатчах"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`N(clutch, где выжили) / attempts × 100`"
+    tooltip: "Как часто вы сохраняетесь, проиграв клатч. Экономический компромисс."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-012"
+    name: "Клатч-киллы"
+    domain: "Клатчи"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σ kills в клатчах`"
+    tooltip: "Убийства в ситуациях 1vX. Не все конвертируются в победу."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-013"
+    name: "Клатч-киллы на попытку"
+    domain: "Клатчи"
+    unit: "шт./попытка"
+    direction: "up"
+    minSample: 10
+    formula: "`clutch_kills / attempts`"
+    tooltip: "Сколько врагов вы забираете с собой в клатче. Показывает сопротивление."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-014"
+    name: "Доля клатчей от раундов"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "neutral"
+    minSample: 30
+    formula: "`clutch_attempts / rounds × 100`"
+    tooltip: "Как часто вы оказываетесь в клатче. Зависит от роли и стиля команды."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-015"
+    name: "Клатчи с обезвреживанием"
+    domain: "Клатчи"
+    unit: "шт."
+    direction: "up"
+    minSample: 5
+    formula: "`N(clutch, завершённый дефьюзом)`"
+    tooltip: "Клатчи, выигранные дефьюзом. Требуют тайминга и отвлечения."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-016"
+    name: "Клатчи с закладкой"
+    domain: "Клатчи"
+    unit: "шт."
+    direction: "up"
+    minSample: 5
+    formula: "`N(clutch, завершённый взрывом)`"
+    tooltip: "Клатчи, выигранные закладкой и удержанием до взрыва."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-017"
+    name: "Ниндзя-дефьюзы"
+    domain: "Клатчи"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`N(defuse, где враг не видел)`"
+    tooltip: "Скрытые обезвреживания. Показывают чтение игры и тайминг."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-018"
+    name: "Средняя длительность клатча"
+    domain: "Клатчи"
+    unit: "сек"
+    direction: "neutral"
+    minSample: 10
+    formula: "`median(clutch_duration)`"
+    tooltip: "Сколько длится клатч. Долгие — осторожная игра, короткие — быстрые решения."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-019"
+    name: "Клатч-опыт"
+    domain: "Клатчи"
+    unit: "индекс"
+    direction: "up"
+    minSample: 20
+    formula: "`Σ (attempts_i × i)` по `i∈1..5`, нормировано"
+    tooltip: "Взвешенный объём клатч-ситуаций. Больше и сложнее — выше опыт."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "CLT-020"
+    name: "Клатч-перцентиль"
+    domain: "Клатчи"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`percentile(clutch_rating | rank_band)`"
+    tooltip: "Положение клатч-рейтинга среди игроков вашего ранга. Показывает относительность."
+    sources: ["Leetify", "CSStats", "Scope", "Refrag"]
+    version: 1
+  - id: "MLT-001"
+    name: "Раунды с 2 убийствами"
+    domain: "Мультикиллы"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 30
+    formula: "`N(rounds, где 2 kills)`, `%`"
+    tooltip: "Двухкилловые раунды. Базовый уровень импакта."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-002"
+    name: "Раунды с 3 убийствами"
+    domain: "Мультикиллы"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 30
+    formula: "`N(rounds, где 3 kills)`, `%`"
+    tooltip: "Трипл-киллы. Обычно решают раунд."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-003"
+    name: "Раунды с 4 убийствами"
+    domain: "Мультикиллы"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 30
+    formula: "`N(rounds, где 4 kills)`, `%`"
+    tooltip: "Квадро-киллы. Часто в клатчах и на анти-эко."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-004"
+    name: "Эйсы (5K)"
+    domain: "Мультикиллы"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 30
+    formula: "`N(rounds, где 5 kills)`, `%`"
+    tooltip: "Раунды с пятью убийствами. Редкое событие, зависит от длины раунда."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-005"
+    name: "Мультикилл-раунды"
+    domain: "Мультикиллы"
+    unit: "шт. и %"
+    direction: "up"
+    minSample: 30
+    formula: "`N(rounds, где ≥2 kills)`, `%`"
+    tooltip: "Раунды с двумя и более убийствами. Сумма 2K–5K."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-006"
+    name: "Мультикиллы за раунд"
+    domain: "Мультикиллы"
+    unit: "шт./раунд"
+    direction: "up"
+    minSample: 30
+    formula: "`Σmultikills / ΣR`"
+    tooltip: "Сколько мультикилл-раундов в среднем за раунд."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-007"
+    name: "Доля убийств в мультикиллах"
+    domain: "Мультикиллы"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`kills_in_multikill_rounds / kills × 100`"
+    tooltip: "Какая часть убийств сделана в раундах с 2+. Показывает концентрацию импакта."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-008"
+    name: "Лучший мультикилл"
+    domain: "Мультикиллы"
+    unit: "категория"
+    direction: "up"
+    minSample: 1
+    formula: "`max(kills_in_round)`"
+    tooltip: "Максимальное число убийств в одном раунде за выборку."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-009"
+    name: "Мультикиллы в клатчах"
+    domain: "Мультикиллы"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σ multikills в clutch_rounds`"
+    tooltip: "Мультикиллы в ситуациях 1vX. Показывает способность переламывать численный перевес."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-010"
+    name: "Мультикиллы на пистолетах"
+    domain: "Мультикиллы"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σ multikills в pistol_rounds`"
+    tooltip: "Мультикиллы в пистолетных раундах. Особенно ценны из-за дешёвого снаряжения."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-011"
+    name: "Эйсы на оружие"
+    domain: "Мультикиллы"
+    unit: "шт. по оружию"
+    direction: "up"
+    minSample: 5
+    formula: "распределение `ace_weapon`"
+    tooltip: "Каким оружием сделаны эйсы. Показывает любимые пушки для больших раундов."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-012"
+    name: "Мультикилл-импакт"
+    domain: "Мультикиллы"
+    unit: "± pp"
+    direction: "up"
+    minSample: 20
+    formula: "`(WR_rounds_with_multikill − WR_without) × share`"
+    tooltip: "Насколько раунды с вашими мультикиллами выигрываются чаще. Контекстная оценка."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-013"
+    name: "Серия убийств без смерти"
+    domain: "Мультикиллы"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`max(consecutive_kills)`"
+    tooltip: "Самая длинная серия убийств без смерти за матч."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-014"
+    name: "Доля раундов с 3+ убийствами"
+    domain: "Мультикиллы"
+    unit: "%"
+    direction: "up"
+    minSample: 30
+    formula: "`N(rounds ≥3 kills) / rounds × 100`"
+    tooltip: "Как часто вы делаете 3+ за раунд. Ключевой показатель carry-потенциала."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "MLT-015"
+    name: "Мультикиллы за матч"
+    domain: "Мультикиллы"
+    unit: "шт./матч"
+    direction: "up"
+    minSample: 10
+    formula: "`Σmultikills / N(matches)`"
+    tooltip: "Сколько мультикилл-раундов в среднем за матч."
+    sources: ["Leetify", "CSStats", "Scope", "Tracker"]
+    version: 1
+  - id: "POS-001"
+    name: "Присутствие в зоне"
+    domain: "Позиционирование"
+    unit: "% тиков"
+    direction: "neutral"
+    minSample: 300
+    formula: "`ticks_zone / ticks_total × 100`"
+    tooltip: "Какую долю времени вы проводите в зоне. Высокое присутствие при плохом K/D — повод менять подход."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-002"
+    name: "K/D в зоне"
+    domain: "Позиционирование"
+    unit: "коэффициент"
+    direction: "up"
+    minSample: 20
+    formula: "`kills_zone / max(deaths_zone, 1)`"
+    tooltip: "K/D по событиям в зоне. Показывает, держите ли вы эту позицию."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-003"
+    name: "Урон в зоне"
+    domain: "Позиционирование"
+    unit: "HP/раунд"
+    direction: "up"
+    minSample: 15
+    formula: "`Σdmg_zone / rounds_with_zone`"
+    tooltip: "Урон, нанесённый из зоны/в зоне. Дополняет K/D, учитывая давление без убийств."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-004"
+    name: "Сильные позиции"
+    domain: "Позиционирование"
+    unit: "топ-5 зон"
+    direction: "up"
+    minSample: 20
+    formula: "`rank by z(K/D) при presence ≥ 2%`"
+    tooltip: "Зоны с лучшим K/D среди достаточно посещаемых. Показываются с процентом присутствия."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-005"
+    name: "Слабые позиции"
+    domain: "Позиционирование"
+    unit: "топ-5 зон"
+    direction: "down"
+    minSample: 20
+    formula: "`rank by z(K/D) при presence ≥ 2%`"
+    tooltip: "Зоны с худшим K/D. Кандидаты на смену подхода или тренировку."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-006"
+    name: "Любимая позиция"
+    domain: "Позиционирование"
+    unit: "зона"
+    direction: "neutral"
+    minSample: 300
+    formula: "`argmax(presence)`"
+    tooltip: "Зона с максимальным присутствием. Не обязательно сильная."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-007"
+    name: "Покрытие карты"
+    domain: "Позиционирование"
+    unit: "зон"
+    direction: "up"
+    minSample: 10
+    formula: "`N(уникальные зоны с presence ≥ 1%)`"
+    tooltip: "Сколько разных зон вы используете. Низкое — предсказуемость."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-008"
+    name: "Индекс агрессии"
+    domain: "Позиционирование"
+    unit: "z"
+    direction: "neutral"
+    minSample: 20
+    formula: "`z(доля времени в первых 25% карты по направлению к точке)`"
+    tooltip: "Насколько глубоко и рано вы заходите на территорию врага. Высокое — агрессивный стиль."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-009"
+    name: "Глубина холда"
+    domain: "Позиционирование"
+    unit: "юниты от точки"
+    direction: "neutral"
+    minSample: 20
+    formula: "`median(distance_to_site_center)` на CT до контакта"
+    tooltip: "Как далеко от точки вы держите. Большая глубина — ранний контакт, малая — пассивная защита."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-010"
+    name: "Время ротации"
+    domain: "Позиционирование"
+    unit: "сек"
+    direction: "down"
+    minSample: 10
+    formula: "`median(t_arrive_new_zone − t_rotate_start)`"
+    tooltip: "Сколько занимает ротация между зонами. Важно для ретейков и помощи."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-011"
+    name: "Дистанция до ближайшего союзника"
+    domain: "Позиционирование"
+    unit: "юниты"
+    direction: "down"
+    minSample: 200
+    formula: "`median(distance_to_nearest_teammate)`"
+    tooltip: "Насколько вы близко к команде. Большая дистанция — риск необменянной смерти."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-012"
+    name: "Изоляция"
+    domain: "Позиционирование"
+    unit: "% тиков"
+    direction: "down"
+    minSample: 200
+    formula: "`N(ticks без союзника в 800 юнитах) / ticks × 100`"
+    tooltip: "Доля времени в одиночестве вне радиуса поддержки."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-013"
+    name: "Кроссфайр"
+    domain: "Позиционирование"
+    unit: "% контактов"
+    direction: "up"
+    minSample: 20
+    formula: "`N(контакты, где союзник держит угол на цель) / contacts × 100`"
+    tooltip: "Как часто вы берёте противника в перекрёстный огонь с союзником."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-014"
+    name: "Поддержка союзника"
+    domain: "Позиционирование"
+    unit: "% тиков"
+    direction: "up"
+    minSample: 200
+    formula: "`N(ticks в 400 юнитах от союзника, готового к трейду) / ticks × 100`"
+    tooltip: "Как часто вы находитесь в позиции для обмена."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-015"
+    name: "Лурк-индекс"
+    domain: "Позиционирование"
+    unit: "z"
+    direction: "neutral"
+    minSample: 20
+    formula: "`z(время в тылу врага) + z(низкая дистанция до союзников) + z(поздние контакты)`"
+    tooltip: "Склонность играть отдельно и поздно. Не путать с байтингом: лурк может быть конструктивным."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-016"
+    name: "Успех взятия точки"
+    domain: "Позиционирование"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`site_take_success / site_take_attempts × 100`"
+    tooltip: "Доля успешных заходов на точку с закладкой. Считается по попыткам, не по раундам."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-017"
+    name: "Успех удержания точки"
+    domain: "Позиционирование"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`site_hold_success / site_hold_attempts × 100`"
+    tooltip: "Доля удержаний точки после захода атаки."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-018"
+    name: "Успех пост-планта"
+    domain: "Позиционирование"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`afterplant_wins / afterplants × 100`"
+    tooltip: "Как часто команда выигрывает раунд после вашей закладки."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-019"
+    name: "Успех ретейка"
+    domain: "Позиционирование"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`retake_wins / retakes × 100`"
+    tooltip: "Доля выигранных ретейков. Требует координации и ютилити."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-020"
+    name: "Позиция на пост-планте"
+    domain: "Позиционирование"
+    unit: "зона"
+    direction: "neutral"
+    minSample: 10
+    formula: "распределение зон в первые 10 с после планта"
+    tooltip: "Где вы играете после закладки. Показывает, держите ли вы угол на подходе."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-021"
+    name: "Позиция при ретейке"
+    domain: "Позиционирование"
+    unit: "зона"
+    direction: "neutral"
+    minSample: 10
+    formula: "распределение зон входа на ретейк"
+    tooltip: "Откуда вы заходите на ретейк. Сравнивается с успешностью."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-022"
+    name: "Смена позиции после контакта"
+    domain: "Позиционирование"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`N(сменил зону в 3 с после контакта без смерти) / contacts × 100`"
+    tooltip: "Как часто вы релоцируетесь после размена. Позволяет не быть предсказуемым."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-023"
+    name: "Позиционная предсказуемость"
+    domain: "Позиционирование"
+    unit: "индекс 0–1"
+    direction: "down"
+    minSample: 20
+    formula: "энтропия распределения зон по раундам, нормированная"
+    tooltip: "Насколько одинаково вы играете одни и те же зоны. 1 — полностью предсказуемо."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-024"
+    name: "Смена стороны карты"
+    domain: "Позиционирование"
+    unit: "% раундов"
+    direction: "neutral"
+    minSample: 20
+    formula: "`N(раунды, где вы были в обеих половинах карты) / rounds × 100`"
+    tooltip: "Как часто вы пересекаете карту за раунд. Высокое — мобильность, но и лишние ротации."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "POS-025"
+    name: "Выход из зоны до контакта"
+    domain: "Позиционирование"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`N(раунды, где позиция покинута до первого контакта) / rounds × 100`"
+    tooltip: "Как часто вы уходите с выбранной позиции до боя. Иногда это ошибка, иногда ротация."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "MOV-001"
+    name: "Пройденная дистанция"
+    domain: "Движение"
+    unit: "юниты/раунд"
+    direction: "neutral"
+    minSample: 20
+    formula: "`Σdistance / ΣR`"
+    tooltip: "Сколько вы двигаетесь за раунд. Слишком мало — статичность, слишком много — лишний шум."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-002"
+    name: "Время в движении"
+    domain: "Движение"
+    unit: "% тиков"
+    direction: "neutral"
+    minSample: 300
+    formula: "`N(ticks со скоростью > 34% max) / ticks × 100`"
+    tooltip: "Доля времени в движении. Сопоставляется с таймингом контактов."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-003"
+    name: "Средняя скорость"
+    domain: "Движение"
+    unit: "юниты/с"
+    direction: "neutral"
+    minSample: 300
+    formula: "`median(speed)`"
+    tooltip: "Типичная скорость. Ниже при ходьбе и приседах."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-004"
+    name: "ADAD-частота"
+    domain: "Движение"
+    unit: "смен направления/с"
+    direction: "neutral"
+    minSample: 100
+    formula: "`N(sign change lateral velocity) / combat_seconds`"
+    tooltip: "Как часто вы меняете направление в бою. Высокая — активный стрейф, но может мешать стрельбе."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-005"
+    name: "Доля ходьбы (walk)"
+    domain: "Движение"
+    unit: "%"
+    direction: "neutral"
+    minSample: 300
+    formula: "`N(ticks с walk) / ticks × 100`"
+    tooltip: "Сколько вы ходите на Shift. Высокая доля — тихо, но медленно."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-006"
+    name: "Доля приседа"
+    domain: "Движение"
+    unit: "%"
+    direction: "neutral"
+    minSample: 300
+    formula: "`N(is_ducked) / ticks × 100`"
+    tooltip: "Доля времени в приседе. Снижает силуэт, но замедляет."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-007"
+    name: "Прыжки за раунд"
+    domain: "Движение"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 20
+    formula: "`Σjumps / ΣR`"
+    tooltip: "Прыжки за раунд. Много — баннихоп/выходы, но шумно."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-008"
+    name: "Время в воздухе"
+    domain: "Движение"
+    unit: "% тиков"
+    direction: "neutral"
+    minSample: 300
+    formula: "`N(is_airborne) / ticks × 100`"
+    tooltip: "Доля времени в воздухе. Влияет на точность и заметность."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-009"
+    name: "Тихое передвижение перед контактом"
+    domain: "Движение"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`N(контакты, где последние 1.5 с вы шли/стояли) / contacts × 100`"
+    tooltip: "Подходите ли вы к контакту без шума. Важно для флангов."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-010"
+    name: "Шумные пики"
+    domain: "Движение"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`N(пики с бегом/прыжком в момент выхода) / peaks × 100`"
+    tooltip: "Доля выходов, которые слышно. Показывает дисциплину."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-011"
+    name: "Эффективность пути"
+    domain: "Движение"
+    unit: "0–1"
+    direction: "up"
+    minSample: 20
+    formula: "`shortest_path / actual_path`"
+    tooltip: "Насколько прямой путь к цели. 1 — идеально, ниже — круги и лишние движения."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-012"
+    name: "Застревания"
+    domain: "Движение"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(тиков с speed < 10 вне приседа > 1 с)`"
+    tooltip: "Сколько раз вы застревали. Часто из-за геометрии или плохого маршрута."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-013"
+    name: "Скорость ротации"
+    domain: "Движение"
+    unit: "юниты/с"
+    direction: "up"
+    minSample: 10
+    formula: "`median(rotation_distance / rotation_time)`"
+    tooltip: "Насколько быстро вы перемещаетесь при ротации."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-014"
+    name: "Дистанция до контакта"
+    domain: "Движение"
+    unit: "юниты"
+    direction: "neutral"
+    minSample: 20
+    formula: "`median(distance_at_contact_start)`"
+    tooltip: "С какой дистанции начинается бой. Определяет, какое оружие выгодно."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-015"
+    name: "Доля контактов на бегу"
+    domain: "Движение"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`N(contact_start при speed > 34%) / contacts × 100`"
+    tooltip: "Как часто вы вступаете в бой на ходу. Прямая связь с точностью первого выстрела."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-016"
+    name: "Перемещение в прицеле"
+    domain: "Движение"
+    unit: "°/с"
+    direction: "neutral"
+    minSample: 200
+    formula: "`median(angular_velocity)`"
+    tooltip: "Скорость вращения прицела. Высокая — активный обзор, но больше пропусков."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-017"
+    name: "Стабильность прицела"
+    domain: "Движение"
+    unit: "°"
+    direction: "down"
+    minSample: 300
+    formula: "`std(view_angle)` вне контакта"
+    tooltip: "Насколько дёргается прицел без цели. Низкая — спокойный холд."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-018"
+    name: "Баннихоп-коэффициент"
+    domain: "Движение"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`N(jumps с сохранением скорости ≥ 90%) / jumps × 100`"
+    tooltip: "Качество цепочки прыжков. Не влияет на стрельбу напрямую, но ускоряет ротации."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-019"
+    name: "Время до выхода из спавна"
+    domain: "Движение"
+    unit: "сек"
+    direction: "down"
+    minSample: 20
+    formula: "`median(t_exit_spawn − t_round_start)`"
+    tooltip: "Сколько вы стоите в спавне. Опоздание режет тайминг захода."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "MOV-020"
+    name: "Дистанция от спавна к первой позиции"
+    domain: "Движение"
+    unit: "юниты"
+    direction: "neutral"
+    minSample: 20
+    formula: "`median(distance_spawn_to_first_hold)`"
+    tooltip: "Как далеко ваша стартовая позиция. Показывает выбранный темп раунда."
+    sources: ["Refrag", "CSStats"]
+    version: 1
+  - id: "OBJ-001"
+    name: "Закладки"
+    domain: "Объектив"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σplants`"
+    tooltip: "Сколько раз вы ставили бомбу."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-002"
+    name: "Успех закладок"
+    domain: "Объектив"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`plants_success / plant_attempts × 100`"
+    tooltip: "Доля успешных закладок. Учитывает только попытки, где вы начали ставить."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-003"
+    name: "Время до закладки"
+    domain: "Объектив"
+    unit: "сек"
+    direction: "down"
+    minSample: 10
+    formula: "`median(t_plant − t_round_start)`"
+    tooltip: "Как быстро вы ставите после начала раунда. Ранний плант даёт время на пост-плант."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-004"
+    name: "Дефьюзы"
+    domain: "Объектив"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σdefuses`"
+    tooltip: "Сколько бомб вы обезвредили."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-005"
+    name: "Успех дефьюзов"
+    domain: "Объектив"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`defuses_success / defuse_attempts × 100`"
+    tooltip: "Доля успешных обезвреживаний. Учитывает начатые попытки."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-006"
+    name: "Время дефьюза"
+    domain: "Объектив"
+    unit: "сек"
+    direction: "down"
+    minSample: 5
+    formula: "`median(defuse_duration)`"
+    tooltip: "Длительность обезвреживания. Зависит от наличия кита."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-007"
+    name: "Дефьюзы с китом"
+    domain: "Объектив"
+    unit: "%"
+    direction: "up"
+    minSample: 5
+    formula: "`N(defuse с defuser) / defuses × 100`"
+    tooltip: "Доля дефьюзов с набором. Без кита времени критически мало."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-008"
+    name: "Выживание после планта"
+    domain: "Объектив"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`N(survived afterplant) / afterplants × 100`"
+    tooltip: "Как часто вы доживаете до конца раунда после своей закладки."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-009"
+    name: "Убийства на пост-планте"
+    domain: "Объектив"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σkills в post_plant`"
+    tooltip: "Убийства при защите бомбы. Показывает удержание."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-010"
+    name: "Потери бомбы"
+    domain: "Объектив"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(bomb dropped и потерян)`"
+    tooltip: "Сколько раз бомба терялась после вашей смерти."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-011"
+    name: "Подбор бомбы"
+    domain: "Объектив"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`Σbomb_pickups`"
+    tooltip: "Сколько раз вы подбирали бомбу. Косвенно показывает готовность играть объектив."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-012"
+    name: "Доля раундов с закладкой"
+    domain: "Объектив"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`rounds_with_plant / T_rounds × 100`"
+    tooltip: "Как часто ваши T-раунды доходят до закладки. Отражает структурность атаки."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-013"
+    name: "Доля раундов с дефьюзом"
+    domain: "Объектив"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`rounds_with_defuse / CT_rounds × 100`"
+    tooltip: "Как часто вы обезвреживаете. Характеризует ретейки и clutch-дефьюзы."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-014"
+    name: "Время у бомбы"
+    domain: "Объектив"
+    unit: "% тиков"
+    direction: "neutral"
+    minSample: 20
+    formula: "`N(ticks в 300 юнитах от bomb) / ticks × 100`"
+    tooltip: "Сколько времени вы рядом с бомбой. Высокое — играете объектив, но можете быть уязвимы."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "OBJ-015"
+    name: "Ранний контест точки"
+    domain: "Объектив"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`N(раунды, где вы входите в зону точки до 20 с) / rounds × 100`"
+    tooltip: "Как часто вы рано выходите на точку. Показывает темп и агрессию."
+    sources: ["Scope", "CSStats"]
+    version: 1
+  - id: "TEA-001"
+    name: "Флеш-ассисты"
+    domain: "Командная игра"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`Σflash_assists`"
+    tooltip: "Сколько убийств союзников произошло по вашим флешкам. Ключевая командная метрика."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-002"
+    name: "Полезные флеш-ассисты"
+    domain: "Командная игра"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`Σimpactful_flash_assists`"
+    tooltip: "Флеш-ассисты, где враг был полностью ослеплён и погиб в течение 3 с."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-003"
+    name: "Урон по своим"
+    domain: "Командная игра"
+    unit: "HP/раунд"
+    direction: "down"
+    minSample: 20
+    formula: "`Σfriendly_damage / ΣR`"
+    tooltip: "Сколько урона вы наносите союзникам за раунд. Включает пули, гранаты и огонь."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-004"
+    name: "Доля урона по своим"
+    domain: "Командная игра"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`friendly_damage / total_damage × 100`"
+    tooltip: "Какая часть вашего урона уходит в союзников."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-005"
+    name: "Тимкиллы"
+    domain: "Командная игра"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`Σteamkills`"
+    tooltip: "Убийства союзников. Отдельно от урона."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-006"
+    name: "Поддержка в контакте"
+    domain: "Командная игра"
+    unit: "% контактов"
+    direction: "up"
+    minSample: 20
+    formula: "`N(контакты с союзником в 400 юнитах и в FOV на цель) / contacts × 100`"
+    tooltip: "Как часто вы реально поддерживаете союзника в его бою."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-007"
+    name: "Кроссфайр-убийства"
+    domain: "Командная игра"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`N(kills, где цель была в кроссфайре с союзником)`"
+    tooltip: "Убийства в перекрёстном огне. Требуют координации."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-008"
+    name: "Обмен ютилити"
+    domain: "Командная игра"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`N(гранаты, брошенные в поддержку союзника) / grenades × 100`"
+    tooltip: "Доля гранат, использованных для помощи союзнику, а не для себя."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-009"
+    name: "Рефраг-индекс"
+    domain: "Командная игра"
+    unit: "z"
+    direction: "up"
+    minSample: 20
+    formula: "`z(trade_kill_share) + z(support_distance_inverse) + z(flash_assists)`"
+    tooltip: "Склонность помогать в бою. Высокий — командный стиль."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-010"
+    name: "Байт-индекс"
+    domain: "Командная игра"
+    unit: "z"
+    direction: "neutral"
+    minSample: 20
+    formula: "`z(поздний контакт) + z(низкий урон в опенинге) − z(поддержка)`"
+    tooltip: "Склонность ждать, пока союзник примет бой. Не всегда плохо."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-011"
+    name: "Вклад в удержание точки"
+    domain: "Командная игра"
+    unit: "% раундов"
+    direction: "up"
+    minSample: 10
+    formula: "`N(hold_wins с вашим участием) / holds × 100`"
+    tooltip: "Как часто ваше участие совпадает с успешным удержанием."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-012"
+    name: "Совместные фраги"
+    domain: "Командная игра"
+    unit: "шт."
+    direction: "up"
+    minSample: 20
+    formula: "`N(kills, где союзник нанёс урон цели до вас)`"
+    tooltip: "Убийства после урона союзника. Показывает командную работу."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-013"
+    name: "Доля поддержки от команды"
+    domain: "Командная игра"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`N(kills с assist) / kills × 100`"
+    tooltip: "Какая часть ваших убийств была с ассистом."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-014"
+    name: "Синергия с тиммейтом"
+    domain: "Командная игра"
+    unit: "винрейт с игроком"
+    direction: "up"
+    minSample: 10
+    formula: "`wins_together / matches_together × 100`"
+    tooltip: "Винрейт в матчах с конкретным союзником. Показывает совместимость, но зависит от уровня."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-015"
+    name: "Совместное присутствие"
+    domain: "Командная игра"
+    unit: "% тиков"
+    direction: "neutral"
+    minSample: 200
+    formula: "`N(ticks в 400 юнитах от игрока) / ticks × 100`"
+    tooltip: "Сколько времени вы проводите с конкретным союзником."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-016"
+    name: "Потери в паре"
+    domain: "Командная игра"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`N(обе смерти в 3 с) / pair_deaths × 100`"
+    tooltip: "Как часто в парной игре погибают оба. Показывает синхронность и риск."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "TEA-017"
+    name: "Размен в паре"
+    domain: "Командная игра"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`N(pair_contact, где второй убил) / pair_contacts × 100`"
+    tooltip: "Как часто второй игрок пары мстит за первого."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "IMP-001"
+    name: "HLTV Rating 1.0 (reference)"
+    domain: "Рейтинги"
+    unit: "рейтинг"
+    direction: "up"
+    minSample: 100
+    formula: "`KillRating = KPR / 0.679`\n  `SurvivalRating = (выжил_раундов / R) / 0.317`\n  `RWMK = (1K + 4·2K + 9·3K + 16·4K + 25·5K) / R / 1.277`\n  `Rating = (KillRating + 0.7·SurvivalRating + RWMK) / 2.7`"
+    tooltip: "Старый рейтинг HLTV 1.0. Формула собрана реверс-инжинирингом и может отличаться от оригинала на сотые. Нормирован так, что 1.00 — средний уровень."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-002"
+    name: "HLTV Rating 2.0 (reference)"
+    domain: "Рейтинги"
+    unit: "рейтинг"
+    direction: "up"
+    minSample: 100
+    formula: "`Rating2 = 0.0073·KAST + 0.3591·KPR − 0.5329·DPR + 0.2372·Impact + 0.0032·ADR + 0.1587`\n  где `Impact = 2.13·KPR + 0.42·APR − 0.41`;\n  KAST — в процентах (0–100), ADR — в HP, KPR/DPR/APR — в долях."
+    tooltip: "Восстановленная линейная формула HLTV 2.0 (R²≈0,995). Включает KAST, KPR, DPR, Impact и ADR. 1.00 — средний уровень. HLTV формулу не публиковал."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-003"
+    name: "HLTV Rating 2.1 (reference)"
+    domain: "Рейтинги"
+    unit: "рейтинг"
+    direction: "up"
+    minSample: 100
+    formula: "та же структура, что 2.0, но с пересчитанными весами под CS2 и сниженной наградой за сейвы; коэффициенты не публичны, используем калибровку 2.0 с поправкой на сейв (сейв-рейт входит с весом −0.05)"
+    tooltip: "Версия 2.1, введённая под CS2. Точные веса закрыты; отображается как reference с пометкой «аппроксимация"
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-004"
+    name: "HLTV Rating 3.0 (reference)"
+    domain: "Рейтинги"
+    unit: "рейтинг"
+    direction: "up"
+    minSample: 200
+    formula: "шесть саб-рейтингов: Kills, Damage, Survival, KAST, Multi-Kills, Round Swing; 2.1-часть корректируется на экономику, затем суммируется с Round Swing и нормируется к среднему 1.00"
+    tooltip: "Rating 3.0 с экономической поправкой и Round Swing. Формула закрыта; реализуем собственную аппроксимацию Round Swing через изменение вероятности победы в раунде."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-005"
+    name: "Impact Rating (reference)"
+    domain: "Рейтинги"
+    unit: "рейтинг"
+    direction: "up"
+    minSample: 100
+    formula: "`2.13·KPR + 0.42·APR − 0.41`"
+    tooltip: "Оценка взрывного импакта: мультикиллы, опенинги, клатчи, ассисты. Входит в Rating 2.0. Высокий Impact при низком KAST — нестабильность."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-006"
+    name: "Leetify Rating (reference)"
+    domain: "Рейтинги"
+    unit: "± очки"
+    direction: "up"
+    minSample: 50
+    formula: "1. До раунда: `WP0 = f(eco_band_CT, eco_band_T)` из исторической таблицы HLTV.\n  2. Каждый килл: `ΔWP = WP_after − WP_before`; киллы в пределах 4 с объединяются в цепочку с линейным весом `w = 1 − Δt/4`.\n  3. Награда `R = ΔWP · w` делится: убийца 35%, дамагеры 30%, флеш-ассист 15%, обменянный 20%; отсутствующие доли масштабируются до 100%.\n  4. Смерть списывает `−ΔWP` только умершему.\n  5. Сейв: награда пропорциональна стоимости сохранённого и приросту WP следующего раунда, кап — награда победителей за предыдущий раунд.\n  6. Рейтинг = среднее по раундам; сумма по игрокам = 0."
+    tooltip: "Zero-sum рейтинг влияния на вероятность победы. Учитывает экономику, число живых, цепочки киллов, сейвы. Награда за килл делится между участниками. Среднее по раундам."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-007"
+    name: "CSDB Rating (reference)"
+    domain: "Рейтинги"
+    unit: "0–10"
+    direction: "up"
+    minSample: 100
+    formula: "`0.30·Aim + 0.20·Positioning + 0.15·Utility + 0.20·Mechanics + 0.10·Opening + 0.05·WinImpact`, затем `× rank_multiplier` (1.05 для высоких банд)"
+    tooltip: "Композит 0–10 с ранговой поправкой. Веса фиксированы; версия формулы хранится вместе со значением."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-008"
+    name: "Refrag-style normalized rating"
+    domain: "Рейтинги"
+    unit: "0–1"
+    direction: "up"
+    minSample: 100
+    formula: "`Σ w_i · minmax(z_i)` по 30 метрикам; `w_i` = корреляция метрики с рангом внутри бэнда, нормированная к 1"
+    tooltip: "Рейтинг по методологии Refrag: метрики нормируются min-max, веса зависят от рангового бэнда. Показывает, насколько вы похожи на сильного игрока своего ранга."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-009"
+    name: "CSRep Trust Score (reference)"
+    domain: "Рейтинги"
+    unit: "0–100"
+    direction: "up"
+    minSample: 90
+    formula: "`0.5·StatisticalTrust + 0.3·AccountFlags + 0.2·Anomalies + bonus`, каждый компонент 0–100"
+    tooltip: "Оценка доверия к аккаунту. Не вероятность легитимности, а агрегат статистических и аккаунтных сигналов."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-010"
+    name: "Giga Score"
+    domain: "Рейтинги"
+    unit: "0–100"
+    direction: "up"
+    minSample: 200
+    formula: "`z_p = (x_p − μ_p(rank, map, season)) / σ_p`\n  `z'_p = z_p · n_p / (n_p + 50)`\n  `G = 50 + 10 · Σ(w_p · z'_p) / Σw_p`\n  Веса: Aim 0,30; Utility 0,15; Positioning 0,20; Opening 0,15; Clutch 0,10; Survival 0,10."
+    tooltip: "Собственный композит. Каждая метрика переводится в z-оценку относительно вашего ранга, карты и сезона, сжимается по выборке и взвешивается. 50 — средний уровень, 100 — топ. Формула полностью открыта."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-011"
+    name: "Aim Rating"
+    domain: "Рейтинги"
+    unit: "0–100"
+    direction: "up"
+    minSample: 150
+    formula: "`50 + 10·mean(z(ACC-SPT, AIM-PRE, AIM-CHP, AIM-TTD, AIM-TTS, ACC-FB, ACC-SPR, AIM-012))`"
+    tooltip: "Композит аима. Включает точность по видимому, предаим, коррекцию, TTD, TTS, первый выстрел, спрей и контр-стрейф. Не включает клиллы и экономику."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-012"
+    name: "Utility Rating"
+    domain: "Рейтинги"
+    unit: "0–100"
+    direction: "up"
+    minSample: 100
+    formula: "`UTL-038` (геометрическое среднее качества и количества)"
+    tooltip: "Композит ютилити: качество × количество. Чтобы получить высокий рейтинг, нужно и бросать много, и бросать полезно."
+    alias: "UTL-038 (одна метрика, отображается и в блоке рейтингов)"
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-013"
+    name: "Positioning Rating"
+    domain: "Рейтинги"
+    unit: "0–100"
+    direction: "up"
+    minSample: 100
+    formula: "`50 + 10·mean(z(POS-018, POS-019, POS-011, POS-013, TRD-008, ROUNDS_SURVIVED))`"
+    tooltip: "Оценка позиционирования: удержание, ретейки, близость к команде, кроссфайр, обмены и выживание. Не оценивает «красоту"
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-014"
+    name: "Opening Rating"
+    domain: "Рейтинги"
+    unit: "±"
+    direction: "up"
+    minSample: 40
+    formula: "`ENT-005`, нормированный на 100 раундов"
+    tooltip: "Суммарный вклад первых дуэлей в вероятность победы, нормированный на длину выборки."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-015"
+    name: "Clutch Rating"
+    domain: "Рейтинги"
+    unit: "±"
+    direction: "up"
+    minSample: 15
+    formula: "`CLT-010`"
+    tooltip: "Вклад клатчей в вероятность победы с учётом сложности ситуации."
+    alias: "CLT-010"
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-016"
+    name: "Survival Rating"
+    domain: "Рейтинги"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`survived_rounds / rounds × 100`"
+    tooltip: "Доля раундов, в которых вы выжили. Высокая — аккуратность, но может быть сейв вместо игры."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-017"
+    name: "Personal Performance"
+    domain: "Рейтинги"
+    unit: "z"
+    direction: "up"
+    minSample: 30
+    formula: "`z(LR_match | LR_history)` — отклонение рейтинга матча от вашего среднего"
+    tooltip: "Насколько матч был лучше или хуже вашей личной нормы. Не сравнивает с другими игроками."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-018"
+    name: "Consistency"
+    domain: "Рейтинги"
+    unit: "0–100"
+    direction: "up"
+    minSample: 20
+    formula: "`100 · (1 − σ(LR_match) / (|mean(LR_match)| + 1))`, clamp 0–100"
+    tooltip: "Стабильность рейтинга от матча к матчу. Низкая — качели, высокая — предсказуемость."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-019"
+    name: "Kill Impact Share"
+    domain: "Рейтинги"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`Σ(impact_weight_kill) / Σ(impact_weight_all_events) × 100`"
+    tooltip: "Какая часть вашего импакта приходится на убийства, а не на урон, флешки и сейвы."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-020"
+    name: "Win Probability Added (WPA)"
+    domain: "Рейтинги"
+    unit: "± pp"
+    direction: "up"
+    minSample: 50
+    formula: "`Σ(WP_after − WP_before)` по всем вашим действиям"
+    tooltip: "Суммарное изменение вероятности победы от ваших действий. Основа Giga Score и LR, но без деления наград."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-021"
+    name: "Expected WPA"
+    domain: "Рейтинги"
+    unit: "± pp"
+    direction: "neutral"
+    minSample: 50
+    formula: "`Σ(WP_after_expected − WP_before)` по средним действиям игрока вашего ранга"
+    tooltip: "Сколько WPA «должен"
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-022"
+    name: "WPA over expectation"
+    domain: "Рейтинги"
+    unit: "± pp"
+    direction: "up"
+    minSample: 50
+    formula: "`WPA − ExpectedWPA`"
+    tooltip: "Превышение ожидаемого влияния. Убирает эффект лёгких/сложных ситуаций."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-023"
+    name: "Round Swing"
+    domain: "Рейтинги"
+    unit: "± pp"
+    direction: "up"
+    minSample: 100
+    formula: "`Σ |ΔWP|` по киллам, где действие изменило исход раунда, с экономической поправкой"
+    tooltip: "Собственная реализация Round Swing HLTV: прямое изменение шансов раунда. Не путать с WPA: учитывается только свинг, не направление."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-024"
+    name: "Economy-adjusted rating"
+    domain: "Рейтинги"
+    unit: "рейтинг"
+    direction: "up"
+    minSample: 100
+    formula: "`HLTV2 + β·(eco_advantage_z)`, β калибруется по сезону"
+    tooltip: "Рейтинг с поправкой на экономику: киллы на эко стоят дешевле, на форсе — дороже."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "IMP-025"
+    name: "Highlight rate"
+    domain: "Рейтинги"
+    unit: "шт./матч"
+    direction: "up"
+    minSample: 10
+    formula: "`Σ highlights / N(matches)`"
+    tooltip: "Сколько ярких событий (3K+, эйс, клатч, валлбенг) в среднем за матч. Медийная, не соревновательная метрика."
+    sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
+    version: 1
+  - id: "FRM-001"
+    name: "Форма за 5 матчей"
+    domain: "Форма"
+    unit: "Giga Score"
+    direction: "up"
+    minSample: 5
+    formula: "`G` по последним 5 матчам"
+    tooltip: "Сжатое окно формы. Очень шумное, но быстро реагирует на спад/подъём."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-002"
+    name: "Форма за 10 матчей"
+    domain: "Форма"
+    unit: "Giga Score"
+    direction: "up"
+    minSample: 10
+    formula: "`G` по последним 10"
+    tooltip: "Компромисс между чувствительностью и шумом."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-003"
+    name: "Форма за 20 матчей (эталон)"
+    domain: "Форма"
+    unit: "Giga Score"
+    direction: "up"
+    minSample: 20
+    formula: "`G` по последним 20"
+    tooltip: "Основное окно формы. Используется в сравнениях и трендах."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-004"
+    name: "Форма за 50 матчей"
+    domain: "Форма"
+    unit: "Giga Score"
+    direction: "up"
+    minSample: 50
+    formula: "`G` по последним 50"
+    tooltip: "Долгое окно. Показывает устойчивый уровень, а не всплеск."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-005"
+    name: "Дельта формы"
+    domain: "Форма"
+    unit: "пункты G"
+    direction: "up"
+    minSample: 40
+    formula: "`G(последние 20) − G(предыдущие 20)`"
+    tooltip: "Изменение формы между двумя окнами. Положительное — прогресс, отрицательное — спад."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-006"
+    name: "Дельта win rate"
+    domain: "Форма"
+    unit: "pp"
+    direction: "up"
+    minSample: 40
+    formula: "`WR(last 20) − WR(prev 20)`"
+    tooltip: "Изменение винрейта между окнами. В процентах пунктах."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-007"
+    name: "Дельта aim"
+    domain: "Форма"
+    unit: "пункты"
+    direction: "up"
+    minSample: 40
+    formula: "`Aim(last 20) − Aim(prev 20)`"
+    tooltip: "Изменение aim-рейтинга. Показывает механический прогресс."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-008"
+    name: "Стагнация"
+    domain: "Форма"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 60
+    formula: "`|ΔG| < 1 ∧ σ(G) < 2` на окне 60"
+    tooltip: "Флаг отсутствия прогресса. Не приговор: возможен плато после роста."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-009"
+    name: "Скачок скилла"
+    domain: "Форма"
+    unit: "флаг"
+    direction: "up"
+    minSample: 40
+    formula: "`ΔG > 2σ(G)`"
+    tooltip: "Аномальный рост. Часто связан с новым сетапом, картой или аккаунтом."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-010"
+    name: "Провал формы"
+    domain: "Форма"
+    unit: "флаг"
+    direction: "down"
+    minSample: 40
+    formula: "`ΔG < −2σ(G)`"
+    tooltip: "Аномальный спад. Проверяйте сон, тильт, сетап и карты."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-011"
+    name: "Лучший матч по G"
+    domain: "Форма"
+    unit: "матч"
+    direction: "up"
+    minSample: 10
+    formula: "`argmax(G_match)`"
+    tooltip: "Матч с максимальным G. Позволяет разобрать, что именно сработало."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-012"
+    name: "Худший матч по G"
+    domain: "Форма"
+    unit: "матч"
+    direction: "down"
+    minSample: 10
+    formula: "`argmin(G_match)`"
+    tooltip: "Матч с минимальным G. Кандидат на разбор."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-013"
+    name: "Матчей в день"
+    domain: "Форма"
+    unit: "шт./день"
+    direction: "neutral"
+    minSample: 7
+    formula: "`N(matches) / N(days)`"
+    tooltip: "Интенсивность игры. Сопоставляется с формой во времени."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-014"
+    name: "Винрейт первого матча дня"
+    domain: "Форма"
+    unit: "%"
+    direction: "neutral"
+    minSample: 10
+    formula: "`wins_first / matches_first × 100`"
+    tooltip: "Винрейт первого матча за день. Показывает эффект разогрева."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-015"
+    name: "Винрейт после 3+ матчей за день"
+    domain: "Форма"
+    unit: "%"
+    direction: "neutral"
+    minSample: 10
+    formula: "`wins_late / matches_late × 100`"
+    tooltip: "Винрейт поздних матчей дня. Показывает устойчивость к усталости."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-016"
+    name: "Винрейт по времени суток"
+    domain: "Форма"
+    unit: "% по бэндам"
+    direction: "neutral"
+    minSample: 10
+    formula: "`WR(hour_band)`"
+    tooltip: "Винрейт по 4-часовым бэндам. Полезно, если есть стабильные «хорошие"
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-017"
+    name: "Винрейт по дням недели"
+    domain: "Форма"
+    unit: "% по дням"
+    direction: "neutral"
+    minSample: 10
+    formula: "`WR(weekday)`"
+    tooltip: "Винрейт по дням недели. Учитывайте разницу онлайна и составов."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-018"
+    name: "Дрейф пула карт"
+    domain: "Форма"
+    unit: "%"
+    direction: "neutral"
+    minSample: 50
+    formula: "`L1(распределение карт последних 50, предыдущих 50)`"
+    tooltip: "Насколько изменился набор карт. Большой дрейф мешает сравнению периодов."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-019"
+    name: "Дрейф пула оружия"
+    domain: "Форма"
+    unit: "%"
+    direction: "neutral"
+    minSample: 100
+    formula: "`L1(распределение оружия)`"
+    tooltip: "Насколько изменился арсенал. Резкая смена объясняет скачки метрик."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-020"
+    name: "Время в игре"
+    domain: "Форма"
+    unit: "ч/неделя"
+    direction: "neutral"
+    minSample: 7
+    formula: "`Σ match_duration`"
+    tooltip: "Игровое время за неделю. Не путать с наигранными часами Steam."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-021"
+    name: "Отношение практики к матчам"
+    domain: "Форма"
+    unit: "="
+    direction: "neutral"
+    minSample: 7
+    formula: "`hours_training / hours_matches`"
+    tooltip: "Сколько тренировок на час матчей. Данные тренировок вводятся вручную или из внешнего трекера."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-022"
+    name: "Пик рейтинга сезона"
+    domain: "Форма"
+    unit: "пункты"
+    direction: "up"
+    minSample: 1
+    formula: "`max(rating)` в сезоне"
+    tooltip: "Максимальный рейтинг в сезоне. Сравнивается с текущим."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "FRM-023"
+    name: "Откат от пика"
+    domain: "Форма"
+    unit: "пункты"
+    direction: "down"
+    minSample: 1
+    formula: "`peak − current`"
+    tooltip: "Сколько рейтинга потеряно от пика. Не всегда плохо: пик мог быть выбросом."
+    sources: ["Leetify", "CSDB", "Scope"]
+    version: 1
+  - id: "REP-001"
+    name: "Возраст аккаунта"
+    domain: "Репутация"
+    unit: "дни"
+    direction: "up"
+    minSample: 1
+    formula: "`now − steam_created_at`"
+    tooltip: "Сколько существует аккаунт. Молодой аккаунт с топовой статистикой — повод для проверки."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-002"
+    name: "Наиграно часов CS"
+    domain: "Репутация"
+    unit: "ч"
+    direction: "up"
+    minSample: 1
+    formula: "`playtime_forever / 60`"
+    tooltip: "Часы в CS2/CS:GO по данным Steam. Приватный профиль даёт N/A."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-003"
+    name: "VAC-бан"
+    domain: "Репутация"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "`VACBanned`"
+    tooltip: "Есть ли VAC-бан. Не обязательно в CS2."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-004"
+    name: "Игровой бан"
+    domain: "Репутация"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "`NumberOfGameBans > 0`"
+    tooltip: "Игровые баны Steam. Шире, чем VAC, включают баны в других играх."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-005"
+    name: "FACEIT-бан"
+    domain: "Репутация"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "`faceit_bans.length > 0`"
+    tooltip: "Баны FACEIT с причиной и сроком."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-006"
+    name: "Друзья с банами"
+    domain: "Репутация"
+    unit: "%"
+    direction: "down"
+    minSample: 20
+    formula: "`banned_friends / friends × 100`"
+    tooltip: "Доля друзей с банами. Косвенный сигнал круга общения."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-007"
+    name: "Стоимость инвентаря"
+    domain: "Репутация"
+    unit: "$"
+    direction: "neutral"
+    minSample: 1
+    formula: "`Σ market_price(items)`"
+    tooltip: "Оценка инвентаря. Не влияет на скилл, но полезно для контекста."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-008"
+    name: "Игр в библиотеке"
+    domain: "Репутация"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`games_owned`"
+    tooltip: "Количество игр. Узкий аккаунт может быть смёрфом или твинком."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-009"
+    name: "Приватность профиля"
+    domain: "Репутация"
+    unit: "категория"
+    direction: "neutral"
+    minSample: 1
+    formula: "`public | friends | private`"
+    tooltip: "Видимость профиля. Приватность ограничивает сбор метрик."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-010"
+    name: "Trust Score"
+    domain: "Репутация"
+    unit: "0–100"
+    direction: "up"
+    minSample: 90
+    formula: "IMP-009"
+    tooltip: "Сводная оценка доверия: статистика + флаги аккаунта + аномалии."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-011"
+    name: "Statistical Trust"
+    domain: "Репутация"
+    unit: "0–100"
+    direction: "up"
+    minSample: 90
+    formula: "`100 − mean(z-аномалии по 12 aim-метрикам)`, clamp"
+    tooltip: "Насколько статистика похожа на человеческую для этого ранга. Высокие z по многим метрикам снижают доверие."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-012"
+    name: "Account Flags"
+    domain: "Репутация"
+    unit: "0–100"
+    direction: "up"
+    minSample: 1
+    formula: "старт 100; −20 за VAC, −15 за игровой бан, −10 за FACEIT-бан, −5 за приватность, +5 за возраст > 5 лет"
+    tooltip: "Штрафы и бонусы за аккаунтные сигналы."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-013"
+    name: "Anomaly Score"
+    domain: "Репутация"
+    unit: "0–100"
+    direction: "down"
+    minSample: 50
+    formula: "`Σ w_i · max(0, z_i − 2)` по aim-метрикам"
+    tooltip: "Суммарная аномальность. Считаются только значения выше 2σ."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-014"
+    name: "Smurf Score"
+    domain: "Репутация"
+    unit: "0–100"
+    direction: "up"
+    minSample: 30
+    formula: "`z(WR) + z(KD) + z(aim) + бонус за молодой аккаунт − штраф за часы`"
+    tooltip: "Вероятность смёрфа. Эвристика, не вероятность."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-015"
+    name: "Percentile-флаги"
+    domain: "Репутация"
+    unit: "список"
+    direction: "neutral"
+    minSample: 30
+    formula: "метрики в 95-м перцентиле рангового бакета"
+    tooltip: "Какие метрики попали в топ-5% ранга. Основа для подозрений и для гордости."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-016"
+    name: "Частота смены ника"
+    domain: "Репутация"
+    unit: "шт./год"
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(alias_changes) / account_years`"
+    tooltip: "Как часто менялся ник. Частые смены затрудняют историю."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-017"
+    name: "Уровень Steam"
+    domain: "Репутация"
+    unit: "уровень"
+    direction: "neutral"
+    minSample: 1
+    formula: "`steam_level`"
+    tooltip: "Уровень Steam. Косвенно связан с возрастом и активностью."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-018"
+    name: "Медали"
+    domain: "Репутация"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(medals)`"
+    tooltip: "Сервисные медали. Контекст, не скилл."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-019"
+    name: "Ранг FACEIT"
+    domain: "Репутация"
+    unit: "уровень / ELO"
+    direction: "up"
+    minSample: 1
+    formula: "`faceit_level`, `faceit_elo`"
+    tooltip: "Ранг FACEIT. Другая среда, напрямую не сравнивается с Premier."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REP-020"
+    name: "Расхождение рангов"
+    domain: "Репутация"
+    unit: "z"
+    direction: "neutral"
+    minSample: 1
+    formula: "`z(premier_rating) − z(faceit_elo)`"
+    tooltip: "Насколько ваш Premier и FACEIT расходятся. Большое расхождение — разные условия или специализация."
+    sources: ["CSRep", "Scope", "CSDB"]
+    version: 1
+  - id: "REC-001"
+    name: "Личный рекорд по метрике"
+    domain: "Рекорды"
+    unit: "значение метрики"
+    direction: "neutral"
+    minSample: 10
+    formula: "`max(value)` или `min(value)` в зависимости от направления"
+    tooltip: "Лучшее значение за всё время с датой, картой и счётом. Нажмите, чтобы открыть матч."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-002"
+    name: "Рекорд по карте"
+    domain: "Рекорды"
+    unit: "значение"
+    direction: "neutral"
+    minSample: 5
+    formula: "рекорд в срезе карты"
+    tooltip: "То же, но в рамках карты. Позволяет видеть специализацию."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-003"
+    name: "Самое большое убийство"
+    domain: "Рекорды"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`max(kills_match)`"
+    tooltip: "Максимум убийств за матч."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-004"
+    name: "Наименьшие смерти"
+    domain: "Рекорды"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`min(deaths_match)` при ≥ 9 раундов"
+    tooltip: "Минимум смертей за матч. Матчи короче 9 раундов не считаются."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-005"
+    name: "Максимум ассистов"
+    domain: "Рекорды"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`max(assists_match)`"
+    tooltip: "Максимум ассистов за матч."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-006"
+    name: "Максимум ADR"
+    domain: "Рекорды"
+    unit: "HP"
+    direction: "up"
+    minSample: 10
+    formula: "`max(ADR_match)`"
+    tooltip: "Максимальный ADR за матч."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-007"
+    name: "Максимум HS%"
+    domain: "Рекорды"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`max(HSK_match)` при ≥ 10 убийств"
+    tooltip: "Максимальный HS% при достаточном числе убийств."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-008"
+    name: "Максимум огня"
+    domain: "Рекорды"
+    unit: "HP"
+    direction: "up"
+    minSample: 10
+    formula: "`max(fire_damage_match)`"
+    tooltip: "Максимальный урон огнём."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-009"
+    name: "Максимум HE-урона"
+    domain: "Рекорды"
+    unit: "HP"
+    direction: "up"
+    minSample: 10
+    formula: "`max(he_damage_match)`"
+    tooltip: "Максимальный урон HE."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-010"
+    name: "Максимум времени слепоты"
+    domain: "Рекорды"
+    unit: "сек"
+    direction: "up"
+    minSample: 10
+    formula: "`max(blind_duration_match)`"
+    tooltip: "Максимальная суммарная слепота врагов за матч."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-011"
+    name: "Максимум опенингов"
+    domain: "Рекорды"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`max(opening_kills_match)`"
+    tooltip: "Максимум первых киллов за матч."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-012"
+    name: "Максимум клатчей"
+    domain: "Рекорды"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`max(clutch_wins_match)`"
+    tooltip: "Максимум выигранных клатчей за матч."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-013"
+    name: "Самая длинная серия побед"
+    domain: "Рекорды"
+    unit: "матчи"
+    direction: "up"
+    minSample: 10
+    formula: "`max(win_streak)`"
+    tooltip: "Максимальная серия побед подряд."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-014"
+    name: "Больше всего овертаймов"
+    domain: "Рекорды"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 10
+    formula: "`max(OT_count)`"
+    tooltip: "Максимум овертаймов в одном матче."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-015"
+    name: "Победы с разницей ≤ 2"
+    domain: "Рекорды"
+    unit: "шт."
+    direction: "up"
+    minSample: 10
+    formula: "`N(wins с |RD| ≤ 2)`"
+    tooltip: "Сколько близких матчей выиграно."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-016"
+    name: "Достижение разблокировано"
+    domain: "Рекорды"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "порог из `data/achievements.json`"
+    tooltip: "Карточка достижения с условием, датой и матчем. Порог хранится в реестре достижений."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-017"
+    name: "Прогресс коллекции"
+    domain: "Рекорды"
+    unit: "%"
+    direction: "up"
+    minSample: 1
+    formula: "`unlocked / total × 100` по категории"
+    tooltip: "Сколько карточек категории открыто."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-018"
+    name: "Редкость достижения"
+    domain: "Рекорды"
+    unit: "% игроков"
+    direction: "neutral"
+    minSample: 100
+    formula: "`N(владельцы) / N(база) × 100`"
+    tooltip: "Насколько редко карточку получают другие. Редкие карточки ценнее."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-019"
+    name: "Первое событие"
+    domain: "Рекорды"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "первое в истории occurrence"
+    tooltip: "Отметка «впервые"
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "REC-020"
+    name: "Веха по объёму"
+    domain: "Рекорды"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "достижение порогов 100/500/1000/5000 матчей, 10k/50k убийств"
+    tooltip: "Долгосрочные вехи. Показывают стаж, не текущую форму."
+    sources: ["Leetify", "Scope", "CSDB", "Tracker"]
+    version: 1
+  - id: "SEA-001"
+    name: "Матчи сезона"
+    domain: "Срезы"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(matches, season)`"
+    tooltip: "Объём выборки сезона. Малые сезоны сравнивать нельзя."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-002"
+    name: "Win rate сезона"
+    domain: "Срезы"
+    unit: "%"
+    direction: "up"
+    minSample: 20
+    formula: "`WR(season)`"
+    tooltip: "Винрейт внутри сезона."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-003"
+    name: "Пик рейтинга сезона"
+    domain: "Срезы"
+    unit: "пункты"
+    direction: "up"
+    minSample: 1
+    formula: "`max(rating, season)`"
+    tooltip: "Максимальный рейтинг сезона."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-004"
+    name: "Финишный рейтинг сезона"
+    domain: "Срезы"
+    unit: "пункты"
+    direction: "up"
+    minSample: 1
+    formula: "`last_rating(season)`"
+    tooltip: "Рейтинг на конец сезона. Не равен пику."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-005"
+    name: "Дельта сезона"
+    domain: "Срезы"
+    unit: "пункты"
+    direction: "up"
+    minSample: 10
+    formula: "`last_rating − first_rating`"
+    tooltip: "Изменение рейтинга за сезон."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-006"
+    name: "Календарный сезон"
+    domain: "Срезы"
+    unit: "номер / даты"
+    direction: "neutral"
+    minSample: 1
+    formula: "`season_start`, `season_end`"
+    tooltip: "Границы сезона. Все сезонные метрики режутся по ним."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-007"
+    name: "Сравнение сезонов"
+    domain: "Срезы"
+    unit: "Δ метрики"
+    direction: "neutral"
+    minSample: 20
+    formula: "`metric(season_n) − metric(season_n−1)`"
+    tooltip: "Разница метрики между сезонами. Учитывайте смену меты и карт."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-008"
+    name: "Прогресс сезона"
+    domain: "Срезы"
+    unit: "0–100"
+    direction: "up"
+    minSample: 20
+    formula: "`percentile(final_rating | season_start_rating)`"
+    tooltip: "Насколько финиш лучше старта относительно распределения."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-009"
+    name: "Placements"
+    domain: "Срезы"
+    unit: "матчи"
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(placement_matches)`"
+    tooltip: "Калибровочные матчи сезона. Помечаются и исключаются из части метрик."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-010"
+    name: "Метa-дрейф сезона"
+    domain: "Срезы"
+    unit: "индекс"
+    direction: "neutral"
+    minSample: 100
+    formula: "`L1(распределение оружия/карт | сезон)`"
+    tooltip: "Насколько сезон отличается от предыдущего по мете. Объясняет часть изменений."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-011"
+    name: "Срез по формату"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 10
+    formula: "метрика в срезе `MR12 | MR15 | Wingman`"
+    tooltip: "Метрика только для выбранного формата. Форматы не смешиваются."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-012"
+    name: "Срез по режиму"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 10
+    formula: "метрика в срезе `Premier | Competitive | Wingman`"
+    tooltip: "Метрика только для режима. Premier по умолчанию."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-013"
+    name: "Срез по карте"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 5
+    formula: "метрика в срезе `map_id`"
+    tooltip: "Метрика только для карты. Малые выборки помечаются."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-014"
+    name: "Срез по стороне"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 20
+    formula: "метрика в срезе `T | CT`"
+    tooltip: "Метрика только для стороны. T и CT сильно различаются по смыслу."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-015"
+    name: "Срез по типу закупа"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 10
+    formula: "метрика в срезе `eco_band`"
+    tooltip: "Метрика только для типа закупа. Позволяет отделить игру на эко от фулл-баев."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-016"
+    name: "Срез по фазе раунда"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 10
+    formula: "метрика в срезе `early | mid | late | post_plant`"
+    tooltip: "Метрика только для фазы. Показывает, где именно происходит вклад."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-017"
+    name: "Срез по классу оружия"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 30
+    formula: "метрика в срезе `weapon_class`"
+    tooltip: "Метрика только для класса оружия."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-018"
+    name: "Срез по конкретному оружию"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 20
+    formula: "метрика в срезе `weapon_id`"
+    tooltip: "Метрика только для оружия. Самая узкая выборка, самый высокий риск шума."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-019"
+    name: "Срез по дистанции"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 20
+    formula: "метрика в срезе `distance_band`"
+    tooltip: "Метрика только для дистанции 0–500 / 500–1000 / 1000–2000 / 2000+."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SEA-020"
+    name: "Срез по численному составу"
+    domain: "Срезы"
+    unit: "метрика"
+    direction: "neutral"
+    minSample: 10
+    formula: "метрика в срезе `alive_5v4 | 4v4 | 4v5 | ...`"
+    tooltip: "Метрика в конкретном численном состоянии. Нужна для контекстных выводов."
+    sources: ["Leetify", "Scope", "CSStats"]
+    version: 1
+  - id: "SES-001"
+    name: "Сессии"
+    domain: "Сессии"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(sessions)`"
+    tooltip: "Количество игровых сессий. Основа для анализа усталости."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-002"
+    name: "Матчей в сессии"
+    domain: "Сессии"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 3
+    formula: "`median(matches_per_session)`"
+    tooltip: "Сколько матчей в типичной сессии."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-003"
+    name: "Длительность сессии"
+    domain: "Сессии"
+    unit: "мин"
+    direction: "neutral"
+    minSample: 3
+    formula: "`median(session_duration)`"
+    tooltip: "Длительность сессии. Слишком длинные сессии коррелируют со спадом."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-004"
+    name: "Win rate сессии"
+    domain: "Сессии"
+    unit: "%"
+    direction: "up"
+    minSample: 3
+    formula: "`session_wins / session_matches × 100`"
+    tooltip: "Винрейт внутри сессии. Показывает, насколько ровно вы играете за подход."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-005"
+    name: "Рейтинг-изменение сессии"
+    domain: "Сессии"
+    unit: "пункты"
+    direction: "up"
+    minSample: 3
+    formula: "`rating_end − rating_start`"
+    tooltip: "Суммарное изменение рейтинга за сессию."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-006"
+    name: "Средний K/D сессии"
+    domain: "Сессии"
+    unit: "коэффициент"
+    direction: "up"
+    minSample: 3
+    formula: "`ΣK / ΣD` в сессии"
+    tooltip: "K/D внутри сессии."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-007"
+    name: "Средний ADR сессии"
+    domain: "Сессии"
+    unit: "HP"
+    direction: "up"
+    minSample: 3
+    formula: "`ΣDMG / ΣR` в сессии"
+    tooltip: "ADR внутри сессии."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-008"
+    name: "Дельта внутри сессии"
+    domain: "Сессии"
+    unit: "пункты G"
+    direction: "up"
+    minSample: 5
+    formula: "`G(последние 3 матча сессии) − G(первые 3)`"
+    tooltip: "Как меняется форма от начала к концу сессии. Отрицательная — усталость."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-009"
+    name: "Кривая усталости"
+    domain: "Сессии"
+    unit: "G по номеру матча"
+    direction: "neutral"
+    minSample: 20
+    formula: "средний G для позиций 1, 2, 3, …, 10 в сессии"
+    tooltip: "Как в среднем падает форма с номером матча. Позволяет найти личный предел."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-010"
+    name: "Лучшая позиция в сессии"
+    domain: "Сессии"
+    unit: "номер матча"
+    direction: "neutral"
+    minSample: 20
+    formula: "`argmax(avg G by match_index)`"
+    tooltip: "На каком по счёту матче сессии вы играете лучше всего."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-011"
+    name: "Винрейт первой половины сессии"
+    domain: "Сессии"
+    unit: "%"
+    direction: "neutral"
+    minSample: 10
+    formula: "`WR(first half)`"
+    tooltip: "Винрейт до середины сессии."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-012"
+    name: "Винрейт второй половины сессии"
+    domain: "Сессии"
+    unit: "%"
+    direction: "neutral"
+    minSample: 10
+    formula: "`WR(second half)`"
+    tooltip: "Винрейт после середины. Сравнивается с первой половиной."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-013"
+    name: "Разрыв между сессиями"
+    domain: "Сессии"
+    unit: "ч"
+    direction: "neutral"
+    minSample: 5
+    formula: "`median(gap_between_sessions)`"
+    tooltip: "Типичный отдых между сессиями."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-014"
+    name: "Матчей после 22:00"
+    domain: "Сессии"
+    unit: "%"
+    direction: "neutral"
+    minSample: 20
+    formula: "`N(matches after 22:00) / matches × 100`"
+    tooltip: "Доля поздних матчей."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "SES-015"
+    name: "Винрейт поздних матчей"
+    domain: "Сессии"
+    unit: "%"
+    direction: "neutral"
+    minSample: 20
+    formula: "`WR(after 22:00)`"
+    tooltip: "Винрейт после 22:00. Сравнивается с общим."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "MIS-001"
+    name: "Смерти без импакта"
+    domain: "Ошибки"
+    unit: "шт. и %"
+    direction: "down"
+    minSample: 20
+    formula: "`N(death без урона, ассиста и обмена)`, `%`"
+    tooltip: "Смерти, где вы ничего не сделали: не нанесли урон, не ассистировали, не были обменены."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-002"
+    name: "Смерти во время перезарядки"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(death при is_reloading)`"
+    tooltip: "Смерти с пустым магазином. Ссылка на раунд обязательна."
+    canon: "AIM-020 (там доля, здесь счётчик)"
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-003"
+    name: "Смерти с гранатой"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(death при grenade_in_hand)`"
+    tooltip: "Смерти, когда в руках была граната."
+    canon: "AIM-021 (там доля, здесь счётчик)"
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-004"
+    name: "Смерти от падения"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(fall_damage_death)`"
+    tooltip: "Смерти от урона падением."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-005"
+    name: "Самофлешки"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(self_flash)`"
+    tooltip: "Флешки, ослепившие вас."
+    canon: "UTL-009 (там доля, здесь счётчик)"
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-006"
+    name: "Полный флеш союзника"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(teammate_full_flash)`"
+    tooltip: "Флешки, полностью ослепившие союзника."
+    canon: "UTL-010 (там счётчик, здесь отдельная карточка ошибки)"
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-007"
+    name: "Необменянные смерти"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(untraded_death)`"
+    tooltip: "Смерти без обмена. Пересекается с TRD-009, но здесь как счётчик ошибок."
+    canon: "TRD-009 (там доля, здесь счётчик)"
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-008"
+    name: "Смерти без урона"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(death с 0 dmg)`"
+    tooltip: "Смерти, в которых вы не нанесли ни одного урона."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-009"
+    name: "Потеря бомбы"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(bomb_lost)`"
+    tooltip: "Смерти с бомбой, после которых её не подобрали."
+    canon: "OBJ-010"
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-010"
+    name: "Дефьюз без кита"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 5
+    formula: "`N(defuse без defuser)`"
+    tooltip: "Попытки дефьюза без набора. Часто заканчиваются нехваткой времени."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-011"
+    name: "Смерть в соло-пике"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(death в контакте без союзника в 600 юнитах)`"
+    tooltip: "Смерти в одиночных контактах без поддержки."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-012"
+    name: "Смерть после широкого выхода"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(death в 1 с после выхода из укрытия)`"
+    tooltip: "Смерти сразу после выхода. Часто признак недооценки угла."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-013"
+    name: "Смерть на эко"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(death в anti_eco_loss)`"
+    tooltip: "Смерти в проигранных анти-эко."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-014"
+    name: "Смерть после сейва"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(death в следующем раунде после сейва)`"
+    tooltip: "Смерти в первом раунде после сейва. Показывает, конвертируется ли сохранение."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-015"
+    name: "Смерть при разминировании"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(death при is_defusing)`"
+    tooltip: "Смерти во время обезвреживания."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-016"
+    name: "Смерть при закладке"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(death при plant)`"
+    tooltip: "Смерти во время установки бомбы."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-017"
+    name: "Потеря преимущества"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(round, где вели +2 и проиграли)`"
+    tooltip: "Раунды, где преимущество 2+ было потеряно."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-018"
+    name: "Пропущенный трейд"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`opportunities − attempts`"
+    tooltip: "Возможности трейда, которые остались без попытки."
+    canon: "TRD-001 / TRD-002 (разность)"
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-019"
+    name: "Ранний выход без поддержки"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(выход на точку до 15 с без союзника в 800 юнитах)`"
+    tooltip: "Слишком ранние одиночные заходы."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-020"
+    name: "Смерть с полным комплектом ютилити"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(death с ≥ 2 гранатами)`"
+    tooltip: "Смерти, не потратив ютилити. Деньги и потенциал потеряны."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-021"
+    name: "Смерть после промаха"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(смерть в энгейджменте, где до этого был промах)`"
+    tooltip: "Смерти в проигранных дуэлях после собственного промаха."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-022"
+    name: "Долгий простой в раунде"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(раунды с > 8 с без движения и контакта до 40 с)`"
+    tooltip: "Провалы темпа: долгое стояние без контакта."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-023"
+    name: "Дублирующий утилити"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 20
+    formula: "`N(граната, брошенная в радиус 300 юнитов от активной союзной гранаты того же типа)`"
+    tooltip: "Гранаты, потраченные впустую поверх союзных."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-024"
+    name: "Смерть от своего огня"
+    domain: "Ошибки"
+    unit: "шт."
+    direction: "down"
+    minSample: 10
+    formula: "`N(self_fire_death)`"
+    tooltip: "Смерти от собственного молотова/огня."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "MIS-025"
+    name: "Индекс ошибок"
+    domain: "Ошибки"
+    unit: "0–100"
+    direction: "down"
+    minSample: 100
+    formula: "`Σ w_i · ошибки_i на 100 раундов`, нормированный"
+    tooltip: "Сводный индекс ошибок. Веса заданы в реестре; ниже — лучше."
+    sources: ["Scope", "Leetify"]
+    version: 1
+  - id: "SCO-001"
+    name: "Форма соперника"
+    domain: "Скаутинг"
+    unit: "Giga Score"
+    direction: "neutral"
+    minSample: 20
+    formula: "`G` соперника за 20 матчей до встречи"
+    tooltip: "Форма конкретного противника перед матчем. Только для собранных матчей."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-002"
+    name: "Head-to-head"
+    domain: "Скаутинг"
+    unit: "W–L"
+    direction: "neutral"
+    minSample: 3
+    formula: "`N(wins)`, `N(losses)` против игрока"
+    tooltip: "Личный счёт встреч. Малые выборки нестабильны."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-003"
+    name: "K/D против игрока"
+    domain: "Скаутинг"
+    unit: "коэффициент"
+    direction: "up"
+    minSample: 10
+    formula: "`kills_vs / max(deaths_vs, 1)`"
+    tooltip: "K/D в дуэлях против конкретного соперника."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-004"
+    name: "Урон против игрока"
+    domain: "Скаутинг"
+    unit: "HP/дуэль"
+    direction: "up"
+    minSample: 10
+    formula: "`Σdmg_vs / duels_vs`"
+    tooltip: "Средний урон в дуэлях с этим игроком."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-005"
+    name: "Доверие соперника"
+    domain: "Скаутинг"
+    unit: "0–100"
+    direction: "neutral"
+    minSample: 30
+    formula: "`REP-010`"
+    tooltip: "Trust Score противника."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-006"
+    name: "Общие тиммейты"
+    domain: "Скаутинг"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(общие тиммейты за 90 дней)`"
+    tooltip: "Люди, с которыми играли оба. Контекст совместимости."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-007"
+    name: "Винрейт с общими тиммейтами"
+    domain: "Скаутинг"
+    unit: "%"
+    direction: "up"
+    minSample: 5
+    formula: "`WR(с общими тиммейтами)`"
+    tooltip: "Винрейт в матчах с людьми, знакомыми сопернику."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-008"
+    name: "Бан-статус соперника"
+    domain: "Скаутинг"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "`REP-003 ∨ REP-004 ∨ REP-005`"
+    tooltip: "Есть ли баны у противника."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-009"
+    name: "Активность соперника"
+    domain: "Скаутинг"
+    unit: "матчей/неделя"
+    direction: "neutral"
+    minSample: 14
+    formula: "`N(matches за 7 дней)`"
+    tooltip: "Сколько играет противник. Помогает понять актуальность формы."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-010"
+    name: "Карта соперника"
+    domain: "Скаутинг"
+    unit: "WR"
+    direction: "neutral"
+    minSample: 5
+    formula: "`WR(соперник, карта)`"
+    tooltip: "Винрейт противника на карте. Для выбора вето."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-011"
+    name: "Преимущество по карте"
+    domain: "Скаутинг"
+    unit: "pp"
+    direction: "up"
+    minSample: 5
+    formula: "`WR(you, map) − WR(enemy, map)`"
+    tooltip: "Разница винрейтов на карте."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-012"
+    name: "Разброс состава"
+    domain: "Скаутинг"
+    unit: "игроков"
+    direction: "neutral"
+    minSample: 5
+    formula: "`N(уникальные тиммейты соперника)`"
+    tooltip: "Играет ли соперник постоянным составом."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-013"
+    name: "Недавняя серия соперника"
+    domain: "Скаутинг"
+    unit: "W/L"
+    direction: "neutral"
+    minSample: 3
+    formula: "`current_streak(enemy)`"
+    tooltip: "Серия противника. Не является прогнозом."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-014"
+    name: "Стиль соперника"
+    domain: "Скаутинг"
+    unit: "профиль"
+    direction: "neutral"
+    minSample: 30
+    formula: "топ-3 z по POS/ENT/UTL"
+    tooltip: "Стилевой профиль: агрессия, ютилити, позиционность. Эвристика."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "SCO-015"
+    name: "Сравнение игроков"
+    domain: "Скаутинг"
+    unit: "side-by-side"
+    direction: "neutral"
+    minSample: 10
+    formula: "выбранные метрики обоих с дельтой"
+    tooltip: "Прямое сравнение по выбранным метрикам с одинаковым фильтром."
+    sources: ["Scope", "Leetify", "CSRep", "CSDB"]
+    version: 1
+  - id: "HIG-001"
+    name: "Хайлайты"
+    domain: "Хайлайты"
+    unit: "шт."
+    direction: "up"
+    minSample: 1
+    formula: "`Σ highlights`"
+    tooltip: "Количество автоматически найденных ярких событий."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-002"
+    name: "Хайлайты за матч"
+    domain: "Хайлайты"
+    unit: "шт./матч"
+    direction: "up"
+    minSample: 10
+    formula: "`highlights / N(matches)`"
+    tooltip: "Плотность ярких событий. Медийная метрика."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-003"
+    name: "Хайлайты по типам"
+    domain: "Хайлайты"
+    unit: "распределение"
+    direction: "neutral"
+    minSample: 10
+    formula: "`% по типу`: ace, 4K, 3K, clutch, wallbang, smoke, noscope, knife, zeus, blind"
+    tooltip: "Из чего состоят хайлайты. Показывает профиль яркости."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-004"
+    name: "Ошибки-клипы"
+    domain: "Хайлайты"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 5
+    formula: "`Σ mistake_clips`"
+    tooltip: "Клипы с ошибками. Ссылки ведут на разбор."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-005"
+    name: "Клипы с POV соперника"
+    domain: "Хайлайты"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`clips_with_enemy_pov / clips × 100`"
+    tooltip: "Доля клипов, доступных с чужого POV."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-006"
+    name: "Клипы с голосом"
+    domain: "Хайлайты"
+    unit: "%"
+    direction: "neutral"
+    minSample: 10
+    formula: "`clips_with_voice / clips × 100`"
+    tooltip: "Доля клипов с записью голоса. Зависит от источника."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-007"
+    name: "Срок хранения клипа"
+    domain: "Хайлайты"
+    unit: "дни"
+    direction: "up"
+    minSample: 1
+    formula: "`expires_at − created_at`"
+    tooltip: "Сколько клип доступен. Избранное хранится дольше."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-008"
+    name: "Избранные клипы"
+    domain: "Хайлайты"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(favorite)`"
+    tooltip: "Клипы, добавленные в избранное."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-009"
+    name: "Компиляции"
+    domain: "Хайлайты"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(compilations)`"
+    tooltip: "Собранные компиляции. До 9 моментов каждая."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-010"
+    name: "Статус рендера"
+    domain: "Хайлайты"
+    unit: "категория"
+    direction: "neutral"
+    minSample: 1
+    formula: "`queued | rendering | ready | failed`"
+    tooltip: "Состояние клипа. Failed содержит причину."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-011"
+    name: "Хайлайты по оружию"
+    domain: "Хайлайты"
+    unit: "распределение"
+    direction: "neutral"
+    minSample: 10
+    formula: "`% по weapon_id`"
+    tooltip: "Каким оружием сделаны яркие события."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-012"
+    name: "Хайлайты по карте"
+    domain: "Хайлайты"
+    unit: "распределение"
+    direction: "neutral"
+    minSample: 10
+    formula: "`% по map`"
+    tooltip: "На каких картах больше ярких событий."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-013"
+    name: "Хайлайты в клатчах"
+    domain: "Хайлайты"
+    unit: "шт."
+    direction: "up"
+    minSample: 5
+    formula: "`N(highlight в clutch)`"
+    tooltip: "Яркие события в ситуациях 1vX."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-014"
+    name: "Лучший хайлайт"
+    domain: "Хайлайты"
+    unit: "ссылка"
+    direction: "neutral"
+    minSample: 1
+    formula: "`argmax(highlight_weight)`"
+    tooltip: "Самый ценный клип по весу события."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "HIG-015"
+    name: "Доля матчей с хайлайтом"
+    domain: "Хайлайты"
+    unit: "%"
+    direction: "up"
+    minSample: 10
+    formula: "`N(matches с highlight) / matches × 100`"
+    tooltip: "Как часто матч даёт хотя бы одно яркое событие."
+    sources: ["Leetify", "Scope"]
+    version: 1
+  - id: "LDR-001"
+    name: "Место в лидерборде"
+    domain: "Лидерборды"
+    unit: "место"
+    direction: "up"
+    minSample: 50
+    formula: "`rank(metric | season, region)`"
+    tooltip: "Позиция в рейтинге по метрике. Только игроки с ≥ 50 матчей в сезоне."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-002"
+    name: "Перцентиль"
+    domain: "Лидерборды"
+    unit: "%"
+    direction: "up"
+    minSample: 50
+    formula: "`percentile(metric | rank_band)`"
+    tooltip: "Какая доля игроков хуже вас по метрике в вашем ранге."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-003"
+    name: "Место в регионе"
+    domain: "Лидерборды"
+    unit: "место"
+    direction: "up"
+    minSample: 50
+    formula: "`rank(metric | region)`"
+    tooltip: "Позиция среди игроков региона."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-004"
+    name: "Место среди друзей"
+    domain: "Лидерборды"
+    unit: "место"
+    direction: "up"
+    minSample: 20
+    formula: "`rank(metric | friends)`"
+    tooltip: "Позиция среди друзей с достаточной выборкой."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-005"
+    name: "Место по карте"
+    domain: "Лидерборды"
+    unit: "место"
+    direction: "up"
+    minSample: 20
+    formula: "`rank(metric | map)`"
+    tooltip: "Позиция по метрике на карте."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-006"
+    name: "Место по оружию"
+    domain: "Лидерборды"
+    unit: "место"
+    direction: "up"
+    minSample: 100
+    formula: "`rank(metric | weapon)`"
+    tooltip: "Позиция по метрике с конкретным оружием."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-007"
+    name: "Изменение места"
+    domain: "Лидерборды"
+    unit: "позиции"
+    direction: "up"
+    minSample: 20
+    formula: "`rank_prev − rank_now`"
+    tooltip: "Поднялись или упали в лидерборде. Положительное — рост."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-008"
+    name: "Участников лидерборда"
+    domain: "Лидерборды"
+    unit: "шт."
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(eligible players)`"
+    tooltip: "Сколько игроков проходит порог выборки."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-009"
+    name: "Лидерборд сезона"
+    domain: "Лидерборды"
+    unit: "сезон"
+    direction: "neutral"
+    minSample: 1
+    formula: "`season_id`"
+    tooltip: "Лидерборд ограничен сезоном, чтобы не смешивать мету."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-010"
+    name: "Лидерборд по метрике"
+    domain: "Лидерборды"
+    unit: "metric_id"
+    direction: "neutral"
+    minSample: 1
+    formula: "`metric_id`"
+    tooltip: "По какой метрике строится рейтинг."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-011"
+    name: "Порог выборки"
+    domain: "Лидерборды"
+    unit: "матчи"
+    direction: "neutral"
+    minSample: 1
+    formula: "`min_matches`"
+    tooltip: "Минимум матчей для попадания в лидерборд. Защита от одного удачного матча."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-012"
+    name: "Анти-абьюз флаг"
+    domain: "Лидерборды"
+    unit: "флаг"
+    direction: "neutral"
+    minSample: 1
+    formula: "`N(подозрительные матчи) > 0`"
+    tooltip: "Есть ли в зачётных матчах подозрительные."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-013"
+    name: "Лучший результат сезона"
+    domain: "Лидерборды"
+    unit: "значение"
+    direction: "up"
+    minSample: 20
+    formula: "`max(metric_match)`"
+    tooltip: "Лучший матчевый результат по метрике в сезоне."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-014"
+    name: "Стабильность в топе"
+    domain: "Лидерборды"
+    unit: "недель"
+    direction: "up"
+    minSample: 5
+    formula: "`N(недели в топ-10%)`"
+    tooltip: "Сколько недель вы держитесь в топ-10%."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "LDR-015"
+    name: "Целевой ранг"
+    domain: "Лидерборды"
+    unit: "место"
+    direction: "up"
+    minSample: 1
+    formula: "`target_rank` из настроек"
+    tooltip: "Личная цель по месту. Показывается прогресс."
+    sources: ["Leetify", "Tracker"]
+    version: 1
+  - id: "TRN-001"
+    name: "Тренировочные сессии"
+    domain: "Тренировки"
+    unit: "шт."
+    direction: "up"
+    minSample: 1
+    formula: "`N(training_sessions)`"
+    tooltip: "Сколько тренировок зафиксировано. Ввод вручную или импорт."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-002"
+    name: "Время тренировок"
+    domain: "Тренировки"
+    unit: "мин"
+    direction: "neutral"
+    minSample: 1
+    formula: "`Σ duration`"
+    tooltip: "Суммарное время тренировок."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-003"
+    name: "Тренировок в неделю"
+    domain: "Тренировки"
+    unit: "шт./нед"
+    direction: "up"
+    minSample: 7
+    formula: "`sessions / weeks`"
+    tooltip: "Регулярность тренировок."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-004"
+    name: "Упражнения по типу"
+    domain: "Тренировки"
+    unit: "распределение"
+    direction: "neutral"
+    minSample: 5
+    formula: "`% по типу`: aim, prefire, spray, tradefire, utility, movement, map"
+    tooltip: "На что уходят тренировки."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-005"
+    name: "Прогресс упражнения"
+    domain: "Тренировки"
+    unit: "Δ результата"
+    direction: "up"
+    minSample: 10
+    formula: "`best_last5 − best_first5`"
+    tooltip: "Улучшение в конкретном упражнении."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-006"
+    name: "Выполнение рутины"
+    domain: "Тренировки"
+    unit: "%"
+    direction: "up"
+    minSample: 7
+    formula: "`completed_steps / planned_steps × 100`"
+    tooltip: "Сколько шагов рутины выполнено."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-007"
+    name: "Перенос в матчи"
+    domain: "Тренировки"
+    unit: "корреляция"
+    direction: "up"
+    minSample: 20
+    formula: "`corr(тренировочный прогресс, AIM-002/ACC-005 в матчах)`"
+    tooltip: "Связан ли прогресс упражнения с метрикой в матчах. Не доказывает причинность."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-008"
+    name: "Тренировочный стрик"
+    domain: "Тренировки"
+    unit: "дни"
+    direction: "up"
+    minSample: 1
+    formula: "`consecutive_training_days`"
+    tooltip: "Дней тренировок подряд."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-009"
+    name: "Пропуски"
+    domain: "Тренировки"
+    unit: "дни"
+    direction: "down"
+    minSample: 14
+    formula: "`N(days без тренировки)`"
+    tooltip: "Пропущенные дни в периоде."
+    sources: ["Leetify", "Refrag"]
+    version: 1
+  - id: "TRN-010"
+    name: "Интенсивность"
+    domain: "Тренировки"
+    unit: "мин/день"
+    direction: "neutral"
+    minSample: 7
+    formula: "`training_minutes / active_days`"
+    tooltip: "Средняя длительность тренировки в активный день."
+    sources: ["Leetify", "Refrag"]
+    version: 1
