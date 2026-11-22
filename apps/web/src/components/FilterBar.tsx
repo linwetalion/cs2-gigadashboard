@@ -15,7 +15,12 @@ export function FilterBar({ filters, state, onChange, onReset, onExport, matches
     <div className="filterbar">
       <div className="filter-row">
         {filters.map((filter) => (
-          <label key={filter.id} className={`filter ${state[filter.id] !== filter.defaultValue ? "active" : ""}`}>
+          <label
+            key={filter.id}
+            className={`filter ${
+              (state[filter.id] ?? filter.defaultValue) !== filter.defaultValue ? "active" : ""
+            }`}
+          >
             <span>{filter.label}</span>
             <select
               value={state[filter.id] ?? filter.defaultValue}

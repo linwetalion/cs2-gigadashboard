@@ -17,8 +17,11 @@ import {
 } from "recharts";
 import type { Metric, SeriesPoint } from "@giga/shared";
 
-const GRID = "rgba(148, 163, 184, 0.12)";
-const AXIS = "#7c8a9c";
+const GRID = "rgba(32, 52, 91, 0.55)";
+const AXIS = "#8492AD";
+const PINK = "#FF388D";
+const PURPLE = "#8B5CF6";
+const BLUE = "#5279E8";
 
 interface Props {
   kind: string;
@@ -38,10 +41,10 @@ export function WidgetChart({ kind, series, metric }: Props) {
           <Line
             type="monotone"
             dataKey="value"
-            stroke="#a3e635"
+            stroke={PINK}
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 3, fill: "#a3e635" }}
+            activeDot={{ r: 3, fill: PINK }}
           />
         </LineChart>
       </ResponsiveContainer>
@@ -54,7 +57,7 @@ export function WidgetChart({ kind, series, metric }: Props) {
         <RadarChart data={series} outerRadius={72}>
           <PolarGrid stroke={GRID} />
           <PolarAngleAxis dataKey="label" tick={{ fill: AXIS, fontSize: 10 }} />
-          <Radar dataKey="value" stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.22} />
+          <Radar dataKey="value" stroke={PURPLE} fill={PURPLE} fillOpacity={0.2} />
           <Tooltip content={<ChartTip unit="0–100" />} />
         </RadarChart>
       </ResponsiveContainer>
@@ -69,7 +72,7 @@ export function WidgetChart({ kind, series, metric }: Props) {
           <XAxis type="number" dataKey="value" tick={{ fill: AXIS, fontSize: 10 }} axisLine={false} tickLine={false} />
           <YAxis type="number" dataKey="secondary" tick={{ fill: AXIS, fontSize: 10 }} axisLine={false} tickLine={false} />
           <Tooltip content={<ChartTip unit={metric.unit} />} />
-          <Scatter data={series} fill="#38bdf8" />
+          <Scatter data={series} fill={BLUE} />
         </ScatterChart>
       </ResponsiveContainer>
     );
@@ -102,7 +105,7 @@ export function WidgetChart({ kind, series, metric }: Props) {
           </>
         )}
         <Tooltip content={<ChartTip unit={metric.unit} />} />
-        <Bar dataKey="value" fill="#38bdf8" radius={[0, 3, 3, 0]} />
+        <Bar dataKey="value" fill={BLUE} radius={[0, 3, 3, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
