@@ -6,6 +6,7 @@ dist/
 data/*.db
 data/*.db-*
 data/demos/
+data/auth/
 data/metrics.json
 .DS_Store
 Thumbs.db

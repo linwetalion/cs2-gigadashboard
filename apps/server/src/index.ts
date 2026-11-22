@@ -18,7 +18,18 @@ import { seedDemo } from "./demo.js";
 import { filters } from "./filters.js";
 import { metric, metrics, registryVersion } from "./registry.js";
 import { decodeShareCode, isShareCode } from "./steam/sharecode.js";
-import { startSteamWorker, workerStatus } from "./steam/worker.js";
+import { startSteamWorker, stopSteamWorker, workerStatus } from "./steam/worker.js";
+import {
+  cancelLogin,
+  configureLogin,
+  loginState,
+  logoutSteam,
+  markRestored,
+  startCredentials,
+  startQr,
+  storedSession,
+  submitGuard,
+} from "./steam/login.js";
 
 const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
 
@@ -36,6 +47,32 @@ if (APP_USER && APP_PASSWORD) {
       return reply.code(401).send({ code: "UNAUTHORIZED", message: "Basic auth required" });
     }
   });
+}
+
+configureLogin({
+  onAuthenticated: (session) => {
+    startSteamWorker({
+      refreshToken: session.refreshToken,
+      steamId: session.steamId,
+      accountName: session.accountName,
+    });
+  },
+  onLogout: () => {
+    stopSteamWorker();
+    workerStatus.lastError = "Disconnected";
+  },
+});
+
+const restored = storedSession();
+if (restored && process.env.STEAM_AUTOSTART !== "0") {
+  markRestored(restored);
+  startSteamWorker({
+    refreshToken: restored.refreshToken,
+    steamId: restored.steamId,
+    accountName: restored.accountName,
+  });
+} else if (STEAM_SYNC && STEAM_REFRESH_TOKEN) {
+  startSteamWorker({ refreshToken: STEAM_REFRESH_TOKEN, steamId: STEAM_ID });
 }
 
 const matchCount = (
@@ -137,10 +174,39 @@ app.get<{ Querystring: { code?: string } }>("/api/sharecode", async (request, re
 });
 
 app.get("/api/steam/status", async () => ({
-  ...workerStatus,
+  login: loginState(),
+  worker: workerStatus,
   syncEnabled: STEAM_SYNC,
-  hasToken: Boolean(STEAM_REFRESH_TOKEN),
+  hasToken: Boolean(storedSession()),
 }));
+
+app.post<{
+  Body: {
+    accountName?: string;
+    password?: string;
+    sharedSecret?: string;
+    machineToken?: string;
+  };
+}>("/api/steam/login", async (request, reply) => {
+  const { accountName, password, sharedSecret, machineToken } = request.body ?? {};
+  if (!accountName || !password) {
+    return reply.code(400).send({ code: "CREDENTIALS_REQUIRED", message: "accountName and password are required" });
+  }
+  return startCredentials({ accountName, password, sharedSecret, machineToken });
+});
+
+app.post<{ Body: { code?: string } }>("/api/steam/guard", async (request, reply) => {
+  if (!request.body?.code) {
+    return reply.code(400).send({ code: "CODE_REQUIRED", message: "Steam Guard code is required" });
+  }
+  return submitGuard(request.body.code);
+});
+
+app.post("/api/steam/qr", async () => startQr());
+
+app.post("/api/steam/cancel", async () => cancelLogin());
+
+app.post("/api/steam/logout", async () => logoutSteam());
 
 app.post("/api/sync", async (_request, reply) => {
   if (!STEAM_SYNC || !STEAM_REFRESH_TOKEN) {
@@ -177,11 +243,8 @@ app
   .listen({ port: PORT, host: HOST })
   .then(() => {
     app.log.info(`Giga server on http://${HOST}:${PORT} (metrics: ${metrics.length})`);
-    if (STEAM_SYNC) {
-      startSteamWorker({ refreshToken: STEAM_REFRESH_TOKEN, steamId: STEAM_ID });
-      app.log.info("Steam worker enabled");
-    } else {
-      workerStatus.lastError = "Steam worker disabled (STEAM_SYNC=0)";
+    if (!workerStatus.enabled) {
+      workerStatus.lastError = "Steam not connected";
     }
   })
   .catch((error) => {

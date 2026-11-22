@@ -9,6 +9,8 @@ export interface SteamWorkerStatus {
   requests: number;
   lastError: string | null;
   lastMatchAt: string | null;
+  accountName?: string;
+  steamId?: string;
 }
 
 export const workerStatus: SteamWorkerStatus = {
@@ -21,20 +23,50 @@ export const workerStatus: SteamWorkerStatus = {
 };
 
 const queue = new SerialQueue({ delayMs: 1500 });
+let activeUser: SteamUser | null = null;
+let activeCs2: NodeCS2 | null = null;
+
+export function stopSteamWorker(): void {
+  try {
+    activeUser?.logOff();
+  } catch {
+    // ignore
+  }
+  try {
+    (activeCs2 as unknown as { dispose?: () => void })?.dispose?.();
+  } catch {
+    // ignore
+  }
+  activeUser = null;
+  activeCs2 = null;
+  workerStatus.loggedOn = false;
+  workerStatus.gcConnected = false;
+  workerStatus.enabled = false;
+}
 
 /**
  * Starts the optional Steam/GC worker. It is intentionally opt-in:
- * without STEAM_SYNC=1 and a refresh token nothing connects to Valve.
+ * without a refresh token nothing connects to Valve.
  */
-export function startSteamWorker(options: { refreshToken?: string; steamId?: string }): void {
+export function startSteamWorker(options: {
+  refreshToken?: string;
+  steamId?: string;
+  accountName?: string;
+}): void {
   if (!options.refreshToken) {
-    workerStatus.lastError = "STEAM_REFRESH_TOKEN is not set";
+    workerStatus.lastError = "No Steam refresh token";
     return;
   }
+  stopSteamWorker();
   workerStatus.enabled = true;
+  workerStatus.steamId = options.steamId;
+  workerStatus.accountName = options.accountName;
+  workerStatus.lastError = null;
 
   const user = new SteamUser();
   const cs2 = new NodeCS2(user as never);
+  activeUser = user;
+  activeCs2 = cs2;
 
   user.on("loggedOn", () => {
     workerStatus.loggedOn = true;

@@ -20,3 +20,54 @@ export function confidenceLabel(value: MetricValue["confidence"]): string {
   if (value === "low") return "низкая";
   return "нет данных";
 }
+
+export interface SteamLoginState {
+  stage: "idle" | "awaiting_guard" | "awaiting_qr" | "authenticating" | "connected" | "error";
+  accountName?: string;
+  steamId?: string;
+  guards: Array<{ kind: "email" | "totp" | "device" | "machine"; detail?: string }>;
+  qrDataUrl?: string;
+  error?: string;
+}
+
+export interface SteamStatus {
+  login: SteamLoginState;
+  worker: {
+    enabled: boolean;
+    loggedOn: boolean;
+    gcConnected: boolean;
+    requests: number;
+    lastError: string | null;
+    lastMatchAt: string | null;
+    accountName?: string;
+    steamId?: string;
+  };
+  syncEnabled: boolean;
+  hasToken: boolean;
+}
+
+async function postJson<T>(url: string, body?: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload?.message ?? `Request failed: ${response.status}`);
+  return payload as T;
+}
+
+export const steamApi = {
+  status: async (): Promise<SteamStatus> => {
+    const response = await fetch("/api/steam/status");
+    if (!response.ok) throw new Error(`Steam status failed: ${response.status}`);
+    return response.json() as Promise<SteamStatus>;
+  },
+  login: (input: { accountName: string; password: string; sharedSecret?: string }) =>
+    postJson<SteamLoginState>("/api/steam/login", input),
+  guard: (code: string) => postJson<SteamLoginState>("/api/steam/guard", { code }),
+  qr: () => postJson<SteamLoginState>("/api/steam/qr"),
+  cancel: () => postJson<SteamLoginState>("/api/steam/cancel"),
+  logout: () => postJson<SteamLoginState>("/api/steam/logout"),
+  sync: () => postJson<{ ok: boolean; message: string }>("/api/sync"),
+};

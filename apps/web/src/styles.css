@@ -926,6 +926,162 @@ button {
   font-size: 12px;
 }
 
+.steam-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.steam-btn.connected {
+  background: rgba(163, 230, 53, 0.12);
+  border: 1px solid rgba(163, 230, 53, 0.45);
+  color: var(--accent);
+}
+
+.steam-drawer {
+  width: min(560px, 100%);
+}
+
+.steam-connected,
+.steam-form,
+.steam-menu,
+.steam-qr {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.steam-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.steam-state b,
+.steam-state span {
+  display: block;
+}
+
+.steam-state span {
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.steam-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.steam-flags span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.steam-flags .ok {
+  color: var(--accent);
+  border-color: rgba(163, 230, 53, 0.35);
+}
+
+.steam-flags .off {
+  color: var(--dim);
+}
+
+.steam-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.steam-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  text-align: left;
+}
+
+.steam-choice:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.steam-choice b {
+  font-size: 13px;
+}
+
+.steam-choice span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.steam-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.steam-form label > span {
+  color: var(--dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.steam-form input {
+  padding: 10px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  outline: none;
+}
+
+.steam-form input:focus {
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.link-btn {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cyan);
+  font-size: 11px;
+}
+
+.steam-qr {
+  align-items: center;
+  text-align: center;
+}
+
+.steam-qr img {
+  width: 260px;
+  height: 260px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px;
+}
+
+.notice {
+  color: var(--cyan);
+  font-size: 12px;
+}
+
+.small {
+  font-size: 11px;
+}
+
 .fatal {
   max-width: 560px;
   margin: 120px auto;

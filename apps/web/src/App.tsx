@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { DashboardPayload, Metric } from "@giga/shared";
 import { fetchDashboard, fetchMetrics } from "./api";
 import { FilterBar } from "./components/FilterBar";
+import { SteamModal } from "./components/SteamModal";
 import { TooltipDrawer } from "./components/TooltipPanel";
 import { Widget } from "./components/Widget";
+import { steamApi, type SteamStatus } from "./api";
 
 function initialFilters(): Record<string, string> {
   const params = new URLSearchParams(window.location.search);
@@ -17,12 +19,26 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openMetric, setOpenMetric] = useState<string | null>(null);
+  const [steamOpen, setSteamOpen] = useState(false);
+  const [steamStatus, setSteamStatus] = useState<SteamStatus | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMetrics()
       .then(setMetrics)
       .catch((reason: unknown) => setError(String(reason)));
+  }, []);
+
+  useEffect(() => {
+    const load = () => {
+      steamApi
+        .status()
+        .then(setSteamStatus)
+        .catch(() => setSteamStatus(null));
+    };
+    load();
+    const timer = window.setInterval(load, 15000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -83,14 +99,9 @@ export default function App() {
               <span className="badge">{data.meta.sampleMatches} matches</span>
             </>
           )}
-          <button
-            className="primary"
-            onClick={() => {
-              setToast("Steam-синк появится на следующем этапе. Сейчас сервер отдаёт демо-датасет.");
-              window.setTimeout(() => setToast(null), 3200);
-            }}
-          >
-            Sync Steam
+          <button className={`primary steam-btn ${steamStatus?.worker?.loggedOn ? "connected" : ""}`} onClick={() => setSteamOpen(true)}>
+            <span className={`dot ${steamStatus?.worker?.loggedOn ? "high" : "none"}`} />
+            {steamStatus?.worker?.loggedOn ? "Steam online" : "Подключить Steam"}
           </button>
         </div>
       </header>
@@ -241,6 +252,8 @@ export default function App() {
           onClose={() => setOpenMetric(null)}
         />
       )}
+
+      <SteamModal open={steamOpen} onClose={() => setSteamOpen(false)} onChanged={setSteamStatus} />
 
       {toast && <div className="toast">{toast}</div>}
     </div>

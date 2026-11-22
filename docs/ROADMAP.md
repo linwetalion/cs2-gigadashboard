@@ -17,12 +17,13 @@
 
 ## Ближайшее (v0.2) — Steam и реальные данные
 
-1. **Логин Steam**
-   - `steam-session` startWithCredentials / QR.
-   - Steam Guard: email/mobile code + shared_secret.
-   - Шифрование refresh-token: AES-256-GCM, ключ через DPAPI.
-   - Endpoint `POST /api/steam/login`, `GET /api/steam/qr`, `POST /api/steam/guard`.
-   - Acceptance: токен переживает перезапуск, пароль не хранится.
+1. **Логин Steam** — сделано
+   - [x] `steam-session` startWithCredentials / QR.
+   - [x] Steam Guard: email/TOTP/device + shared_secret.
+   - [x] Шифрование refresh-token: AES-256-GCM.
+   - [x] Endpoint `POST /api/steam/login`, `POST /api/steam/qr`, `POST /api/steam/guard`, `POST /api/steam/logout`.
+   - [x] Автозапуск воркера из сохранённого токена.
+   - [ ] Проверка на реальном аккаунте (нужен Steam Guard пользователя).
 
 2. **Синк матчей**
    - `requestRecentGames` для последних 8.
