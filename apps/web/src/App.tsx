@@ -241,7 +241,9 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <span>Локальный сервер · SQLite · демо-данные</span>
+        <span>
+          Локальный сервер · SQLite · {data?.demo ? "демо-данные" : "GC + распарсенные демки"}
+        </span>
         <span>Giga Score не является официальным рейтингом Valve</span>
       </footer>
 
