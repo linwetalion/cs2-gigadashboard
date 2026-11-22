@@ -1175,8 +1175,25 @@ button {
 }
 
 .warn {
-  color: var(--warning);
+  padding: 7px 9px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-badge);
+  background: rgba(245, 158, 11, 0.07);
+  color: #f3c778;
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.steam-history input::placeholder {
+  color: var(--dim);
+}
+
+.warn code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.12);
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-size: 11px;
 }
 
 /* ---------- Steam ---------- */
@@ -1290,20 +1307,24 @@ button {
   font-size: 11px;
 }
 
-.steam-form label {
+.steam-form label,
+.steam-history label {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
-.steam-form label > span {
+.steam-form label > span,
+.steam-history label > span {
   color: var(--dim);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 
-.steam-form input {
+.steam-form input,
+.steam-history input {
+  width: 100%;
   padding: 10px 11px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
@@ -1313,7 +1334,8 @@ button {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.steam-form input:focus {
+.steam-form input:focus,
+.steam-history input:focus {
   border-color: rgba(212, 175, 87, 0.65);
   box-shadow: 0 0 0 3px rgba(212, 175, 87, 0.14);
 }

@@ -12,9 +12,11 @@ services:
       - key: PORT
         value: "8787"
       - key: GIGA_DEMO
-        value: "1"
+        value: "0"
       - key: GIGA_DB
         value: /tmp/giga.db
+      - key: GIGA_SEED
+        value: /app/data/seed/giga.db
       - key: APP_USER
         sync: false
       - key: APP_PASSWORD

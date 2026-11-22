@@ -18,6 +18,8 @@
     "seed": "npm run seed -w @giga/server",
     "demos:parse": "npm run demos:parse -w @giga/server",
     "metrics:sync": "node scripts/parse-metrics.mjs",
+    "seed:make": "node scripts/make-seed.mjs",
+    "seed:audit": "node scripts/audit-seed.mjs",
     "test": "npm run test -w @giga/server",
     "typecheck": "npm run typecheck -w @giga/server && npm run typecheck -w @giga/web"
   },

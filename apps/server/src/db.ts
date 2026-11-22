@@ -1,9 +1,33 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { dbPath } from "./config.js";
 
 mkdirSync(dirname(dbPath), { recursive: true });
+
+// On hosts without a persistent disk (Render free) the database starts empty
+// on every boot. GIGA_SEED points at a read-only snapshot of the real dataset;
+// it is copied in only when there are no real matches yet, so local data is
+// never overwritten.
+const seedPath = process.env.GIGA_SEED;
+
+function hasRealMatches(file: string): boolean {
+  try {
+    const probe = new Database(file, { readonly: true });
+    const row = probe
+      .prepare("SELECT COUNT(*) AS c FROM matches WHERE is_demo = 0")
+      .get() as { c: number } | undefined;
+    probe.close();
+    return Number(row?.c ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+if (seedPath && existsSync(seedPath) && !hasRealMatches(dbPath)) {
+  for (const suffix of ["", "-wal", "-shm"]) rmSync(`${dbPath}${suffix}`, { force: true });
+  copyFileSync(seedPath, dbPath);
+}
 
 export const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");

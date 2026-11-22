@@ -26,6 +26,7 @@ COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/packages/shared/package.json ./packages/shared/
 COPY --from=build /app/data/metrics.yaml ./data/metrics.yaml
+COPY --from=build /app/data/seed ./data/seed
 
 RUN mkdir -p /app/data && chown -R node:node /app
 USER node

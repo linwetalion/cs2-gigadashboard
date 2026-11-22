@@ -161,8 +161,8 @@ export function SteamModal({ open, onClose, onChanged }: Props) {
               </p>
               {!status?.hasApiKey && (
                 <p className="warn small">
-                  Добавь `STEAM_API_KEY` в `.env` и перезапусти сервер, иначе Steam не отдаст
-                  цепочку share-кодов.
+                  Добавь <code>STEAM_API_KEY</code> в <code>.env</code> и перезапусти сервер, иначе
+                  Steam не отдаст цепочку share-кодов.
                 </p>
               )}
               <label>
