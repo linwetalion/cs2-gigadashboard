@@ -6,6 +6,7 @@
 
 - ТЗ: [`docs/TZ-gigadashboard.md`](docs/TZ-gigadashboard.md)
 - Хостинг и домен: [`docs/HOSTING.md`](docs/HOSTING.md)
+- Деплой на Northflank: [`deploy/NORTHFLANK.md`](deploy/NORTHFLANK.md)
 - План реализации: [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - Реестр метрик: [`data/metrics.yaml`](data/metrics.yaml) (генерируется из ТЗ)
 

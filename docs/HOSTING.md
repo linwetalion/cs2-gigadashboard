@@ -8,11 +8,14 @@
 |---|---|---|---|
 | Показать сайт сегодня, доступ только мне/друзьям | **локальный ПК + Tailscale Funnel** | `*.ts.net` | 0 |
 | Постоянный красивый адрес, сервер дома | **Cloudflare Tunnel + EU.org** | `giga.<name>.eu.org` | 0 |
-| Всегда включённый сервер в облаке | **Oracle Cloud Always Free + DuckDNS + Caddy** | `<name>.duckdns.org` | 0 |
+| Всегда включённый сервер в облаке | **Northflank Sandbox + volume** | `*.code.run` или свой домен | 0, без карты |
+| Полный контроль, всегда включён | **Oracle Cloud Always Free + DuckDNS + Caddy** | `<name>.duckdns.org` | 0 |
 | Быстрый публичный демо-стенд | **Cloudflare Quick Tunnel** | `*.trycloudflare.com` | 0 |
 | Только UI/демо без Steam-воркера | Render / Koyeb | `*.onrender.com` / `*.koyeb.app` | 0, но засыпает |
 
-**Рекомендация для этого проекта:** локальный ПК + Tailscale Funnel сейчас, параллельно регистрация `eu.org` для постоянного адреса. Steam-логин и refresh-token остаются на вашей машине, наружу торчит только HTTPS-прокси.
+**Рекомендация для этого проекта:** **Northflank Sandbox** — единственный найденный бесплатный вариант без карты с always-on процессом и persistent volume. Пошаговая инструкция: [`deploy/NORTHFLANK.md`](../deploy/NORTHFLANK.md). Если нужен полный контроль и парсинг демок в облаке — Oracle Cloud Always Free.
+
+Локальный ПК + Tailscale Funnel остаётся самым приватным вариантом: Steam-логин и refresh-token не покидают машину.
 
 Причина: приложению нужен **долгоживущий процесс** (GC-соединение), **локальный диск** (SQLite + кэш демок) и **секреты Steam**. Бесплатные PaaS (Render/Koyeb) засыпают, не дают постоянный диск и плохо подходят для Game Coordinator.
 

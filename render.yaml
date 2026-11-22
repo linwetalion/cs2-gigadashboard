@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: cs2-gigadashboard
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "8787"
+      - key: GIGA_DEMO
+        value: "1"
+      - key: GIGA_DB
+        value: /tmp/giga.db
+      - key: APP_USER
+        sync: false
+      - key: APP_PASSWORD
+        sync: false

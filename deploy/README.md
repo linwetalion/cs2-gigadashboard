@@ -8,6 +8,8 @@
 | `cloudflared.config.example.yml` | Cloudflare Tunnel для `giga.name.eu.org` |
 | `giga.service.example` | systemd unit для Oracle VM без Docker |
 | `is-a-dev.json.example` | заявка на бесплатный `name.is-a.dev` |
+| `NORTHFLANK.md` | пошаговый деплой на бесплатный Northflank Sandbox |
+| `../render.yaml` | fallback: бесплатный Render (демо, без диска) |
 
 Полная инструкция: [`../docs/HOSTING.md`](../docs/HOSTING.md).
 
