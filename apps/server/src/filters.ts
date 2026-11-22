@@ -4,7 +4,7 @@ export const filters: FilterDefinition[] = [
   {
     id: "range",
     label: "Период",
-    defaultValue: "30d",
+    defaultValue: "all",
     options: [
       { value: "7d", label: "7 дней" },
       { value: "30d", label: "30 дней" },
