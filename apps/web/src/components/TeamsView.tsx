@@ -648,7 +648,7 @@ function CompareTable({
             ))}
           </div>
           {group.rows.map((row) => (
-            <div className={`compare-row ${row.group === "players" ? "player" : ""}`} key={row.id}>
+            <div className={`compare-row ${row.group === "players" ? "is-player" : ""}`} key={row.id}>
               <span className="compare-metric" title={row.hint}>
                 {row.label}
               </span>
@@ -745,7 +745,7 @@ export function TeamsView({ filters }: { filters: Record<string, string> }) {
     .filter((team): team is TeamListItem => Boolean(team));
 
   return (
-    <div className="teams-view">
+    <div className={`teams-view ${comparing ? "comparing" : ""}`}>
       <header className="teams-hero">
         <div>
           <span className="eyebrow">Teams · топ-10 составов</span>

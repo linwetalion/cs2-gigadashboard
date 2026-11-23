@@ -2611,6 +2611,12 @@ button {
   border-radius: var(--radius-lg);
 }
 
+/* While the comparison table is open, rows stop sticking so their headers
+   cannot paint over it. */
+.teams-view.comparing .team-row-head {
+  position: static;
+}
+
 /* Comparison table */
 
 .compare-panel {
@@ -2755,7 +2761,7 @@ button {
   color: var(--gold-soft);
 }
 
-.compare-row.player .compare-metric {
+.compare-row.is-player .compare-metric {
   padding-left: 10px;
   color: var(--text);
   font-weight: 500;
