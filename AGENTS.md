@@ -21,7 +21,8 @@
 ## Автодеплой
 
 1. Пуш в `main` — это и есть триггер публикации.
-2. Основной канал: GitHub Actions → Render Deploy Hook (`RENDER_DEPLOY_HOOK_URL` в Secrets).
+2. Основной канал: `RENDER_DEPLOY_HOOK_URL` в `.env` (локально) или в Render → Environment.
+   `npm run autopublish` после пуша сам вызывает хук.
 3. Если хук не настроен или Render не подключён к GitHub — деплой вручную:
    Render → сервис `cs2-gigadashboard` → **Manual Deploy → Deploy latest commit**.
 4. После деплоя проверить:
@@ -29,7 +30,8 @@
    - `GET /api/teams` → непустой список составов;
    - версия ассетов в HTML совпадает со свежим билдом.
 5. Не публиковать секреты в переменных окружения репозитория. Пароль Basic Auth живёт только
-   в Render → Environment → `APP_PASSWORD`.
+   в Render → Environment → `APP_PASSWORD`. Токен GitHub с scope `workflow` не обязателен:
+   workflow-файлы в репозиторий не коммитятся.
 
 ## Definition of done
 

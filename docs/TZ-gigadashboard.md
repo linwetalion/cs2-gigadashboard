@@ -4056,6 +4056,5 @@ Leetify отдаёт aim-рейтинг не для каждого матча. �
 См. `AGENTS.md` и `docs/AUTODEPLOY.md`:
 
 - каждое изменение кода/данных коммитится и пушится в `main` без отдельной просьбы;
-- `npm run autopublish` делает `add → commit → push`;
-- GitHub Actions (`.github/workflows/deploy.yml`) дёргает Render Deploy Hook, если задан секрет `RENDER_DEPLOY_HOOK_URL`;
+- `npm run autopublish` делает `add → commit → push`, а затем вызывает Render deploy hook, если задан `RENDER_DEPLOY_HOOK_URL` (в `.env` или в окружении);
 - без хука деплой запускается вручную: Render → Manual Deploy → Deploy latest commit.
