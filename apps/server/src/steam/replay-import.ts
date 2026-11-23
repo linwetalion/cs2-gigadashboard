@@ -68,7 +68,9 @@ export function importSteamReplays(items: SteamReplayItem[]): ReplayImportResult
      LIMIT 1`
   );
   const attach = db.prepare(
-    "UPDATE matches SET demo_url = ?, demo_status = 'available' WHERE match_id = ?"
+    `UPDATE matches SET demo_url = ?,
+       demo_status = CASE WHEN demo_status = 'parsed' THEN demo_status ELSE 'available' END
+     WHERE match_id = ?`
   );
   const insert = db.prepare(`
     INSERT INTO matches (match_id, season_id, mode, map, format, started_at, ended_at,
@@ -76,7 +78,7 @@ export function importSteamReplays(items: SteamReplayItem[]): ReplayImportResult
     VALUES (?, 3, 'premier', ?, 'MR12', ?, NULL, 0, 0, 'tie', NULL, 'published', 'steam', 0, ?, 'available')
     ON CONFLICT(match_id) DO UPDATE SET
       demo_url = excluded.demo_url,
-      demo_status = 'available',
+      demo_status = CASE WHEN matches.demo_status = 'parsed' THEN matches.demo_status ELSE 'available' END,
       map = CASE WHEN matches.map = 'unknown' THEN excluded.map ELSE matches.map END
   `);
 

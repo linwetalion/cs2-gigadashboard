@@ -1,4 +1,4 @@
-import { createReadStream, createWriteStream, existsSync, mkdirSync, rmSync, statSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { resolve } from "node:path";
@@ -90,15 +90,22 @@ export interface DemoResult {
 }
 
 async function download(url: string, target: string): Promise<void> {
+  const part = `${target}.part`;
+  rmSync(part, { force: true });
   const response = await fetch(url);
   if (!response.ok || !response.body) throw new Error(`Demo download failed: ${response.status}`);
-  await pipeline(Readable.fromWeb(response.body as never), createWriteStream(target));
+  await pipeline(Readable.fromWeb(response.body as never), createWriteStream(part));
   const expected = Number(response.headers.get("content-length") ?? 0);
-  const actual = statSync(target).size;
+  const actual = statSync(part).size;
   if (expected && actual !== expected) {
-    rmSync(target, { force: true });
+    rmSync(part, { force: true });
     throw new Error(`Demo download incomplete: ${actual}/${expected} bytes`);
   }
+  if (actual < 1024) {
+    rmSync(part, { force: true });
+    throw new Error(`Demo download too small: ${actual} bytes`);
+  }
+  renameSync(part, target);
 }
 
 async function decompress(input: string, output: string): Promise<void> {
@@ -114,8 +121,8 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   const bz2 = resolve(demoDir, `${matchId}.dem.bz2`);
   const dem = resolve(demoDir, `${matchId}.dem`);
 
-  if (!existsSync(dem)) {
-    if (!existsSync(bz2)) {
+  if (!existsSync(dem) || statSync(dem).size < 1024) {
+    if (!existsSync(bz2) || statSync(bz2).size < 1024) {
       console.info(`[demo] downloading ${matchId}`);
       await download(url, bz2);
     }
@@ -125,6 +132,12 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
 
   const header = parseHeader(dem) as { map_name?: string };
   const players = parsePlayerInfo(dem) as DemoPlayer[];
+  const demSize = statSync(dem).size;
+  if (players.length < 2 || demSize < 1_000_000) {
+    rmSync(dem, { force: true });
+    rmSync(bz2, { force: true });
+    throw new Error(`Demo looks corrupt: players=${players.length}, size=${demSize} bytes`);
+  }
   const deaths = parseEvent(dem, "player_death", null, ["total_rounds_played"]) as DeathEvent[];
   const hurts = parseEvent(dem, "player_hurt", null, ["total_rounds_played"]) as HurtEvent[];
   const roundEnds = parseEvent(dem, "round_end") as RoundEndEvent[];
@@ -156,10 +169,11 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
       roundsWithKast: Set<number>;
       name: string;
       team: string;
+      teamNumber: number | null;
     }
   >();
 
-  const ensure = (steamid: string, name: string, team: string) => {
+  const ensure = (steamid: string, name: string, team: string, teamNumber: number | null = null) => {
     let entry = perPlayer.get(steamid);
     if (!entry) {
       entry = {
@@ -171,16 +185,24 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
         roundsWithKast: new Set(),
         name,
         team,
+        teamNumber,
       };
       perPlayer.set(steamid, entry);
     }
     if (name && name !== steamid) entry.name = name;
+    if (teamNumber !== null) entry.teamNumber = teamNumber;
     return entry;
   };
 
   for (const player of players) {
-    ensure(player.steamid, player.name, player.team_number === 2 ? "T" : "CT");
+    ensure(
+      player.steamid,
+      player.name,
+      player.team_number === 2 ? "T" : "CT",
+      player.team_number ?? null
+    );
   }
+  const mySide = players.find((player) => player.steamid === mySteamId)?.team_number ?? null;
 
   for (const death of deaths) {
     const round = roundOf(death);
@@ -282,15 +304,25 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   `);
   const insertRound = db.prepare(`
     INSERT OR REPLACE INTO rounds (match_id, round_no, side, eco_band, winner, reason,
-      start_tick, end_tick, plant_tick, defuse_tick, ct_alive_start, t_alive_start)
-    VALUES (?, ?, ?, 'unknown', ?, ?, NULL, ?, ?, ?, NULL, NULL)
+      start_tick, end_tick, plant_tick, defuse_tick, plant_player, defuse_player,
+      ct_alive_start, t_alive_start)
+    VALUES (?, ?, ?, 'unknown', ?, ?, NULL, ?, ?, ?, ?, ?, NULL, NULL)
   `);
 
   const plantByRound = new Map(plants.map((plant) => [roundOf(plant), plant.tick]));
   const defuseByRound = new Map(defuses.map((defuse) => [roundOf(defuse), defuse.tick]));
+  const plantPlayerByRound = new Map(
+    plants.map((plant) => [roundOf(plant), plant.user_steamid ?? null])
+  );
+  const defusePlayerByRound = new Map(
+    defuses.map((defuse) => [roundOf(defuse), defuse.user_steamid ?? null])
+  );
 
   const tx = db.transaction(() => {
-    db.prepare("DELETE FROM kills WHERE match_id = ?").run(matchId);
+    // Re-parsing must not stack duplicates on top of the previous run.
+    for (const table of ["kills", "shots", "damage", "grenades", "positions"]) {
+      db.prepare(`DELETE FROM ${table} WHERE match_id = ?`).run(matchId);
+    }
     for (const death of deaths) {
       insertKill.run(
         matchId,
@@ -438,7 +470,9 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
         round.reason,
         round.tick,
         plantByRound.get(round.round) ?? null,
-        defuseByRound.get(round.round) ?? null
+        defuseByRound.get(round.round) ?? null,
+        plantPlayerByRound.get(round.round) ?? null,
+        defusePlayerByRound.get(round.round) ?? null
       );
     }
 
@@ -455,7 +489,11 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
         matchId,
         steamid,
         entry.name || steamid,
-        entry.team || "?",
+        mySide !== null && entry.teamNumber !== null
+          ? entry.teamNumber === mySide
+            ? "us"
+            : "them"
+          : entry.team || "?",
         entry.kills,
         entry.deaths,
         entry.assists,
@@ -473,7 +511,10 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   tx();
 
   rmSync(dem, { force: true });
-  rmSync(bz2, { force: true });
+  // The compressed demo is kept on disk: replays expire on Valve's side after
+  // a few weeks, and keeping them lets us recompute metrics without re-download.
+  const kept = existsSync(bz2) ? statSync(bz2).size : 0;
+  db.prepare("UPDATE matches SET demo_size = ? WHERE match_id = ?").run(kept, matchId);
 
   return { matchId, map, rounds, players: perPlayer.size, kills: deaths.length, durationSec };
 }

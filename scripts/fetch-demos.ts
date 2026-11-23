@@ -53,6 +53,7 @@ const args = process.argv.slice(2);
 const limitIndex = args.findIndex((arg) => arg === "--limit");
 const limit = limitIndex >= 0 ? Number(args[limitIndex + 1]) : Number.POSITIVE_INFINITY;
 const explicit = args.filter((arg) => /^\d{6,}$/.test(arg));
+const reparse = args.includes("--reparse");
 
 const session = storedSession();
 if (!session) {
@@ -62,11 +63,16 @@ if (!session) {
 
 const rows = db
   .prepare(
-    `SELECT match_id, map, demo_url, demo_outcome, demo_cluster, demo_status
-     FROM matches
-     WHERE source IN ('gc', 'steam')
-       AND (demo_status IS NULL OR demo_status NOT IN ('parsed', 'expired'))
-     ORDER BY started_at DESC`
+    reparse
+      ? `SELECT match_id, map, demo_url, demo_outcome, demo_cluster, demo_status
+         FROM matches
+         WHERE demo_url IS NOT NULL AND demo_status = 'parsed'
+         ORDER BY started_at DESC`
+      : `SELECT match_id, map, demo_url, demo_outcome, demo_cluster, demo_status
+         FROM matches
+         WHERE source IN ('gc', 'steam')
+           AND (demo_status IS NULL OR demo_status NOT IN ('parsed', 'expired'))
+         ORDER BY started_at DESC`
   )
   .all() as MatchRow[];
 

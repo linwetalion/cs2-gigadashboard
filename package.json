@@ -20,6 +20,7 @@
     "demos:fetch": "tsx scripts/fetch-demos.ts",
     "metrics:sync": "node scripts/parse-metrics.mjs",
     "metrics:demo": "tsx scripts/recompute-demo-metrics.ts",
+    "purge:leetify": "node scripts/purge-leetify.mjs",
     "seed:make": "node scripts/make-seed.mjs",
     "seed:audit": "node scripts/audit-seed.mjs",
     "autopublish": "node scripts/autopublish.mjs",

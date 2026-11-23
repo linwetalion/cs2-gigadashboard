@@ -492,7 +492,14 @@ function recentMatches(aggregate: TeamAggregate, limit = 12): MatchSummary[] {
         positioning: avg(rows.map((row) => row.positioning)) ?? undefined,
         leetifyRating: avg(rows.map((row) => row.leetify_rating)) ?? undefined,
         delta: 0,
-        source: match.source === "gc" ? "gc" : match.source === "leetify" ? "leetify" : "demo",
+        source:
+          match.source === "gc"
+            ? "gc"
+            : match.source === "steam"
+              ? "steam"
+              : match.source === "leetify"
+                ? "leetify"
+                : "demo",
         isDemo: match.isDemo,
       } satisfies MatchSummary;
     });

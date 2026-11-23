@@ -123,7 +123,7 @@ export interface MatchSummary {
   positioning?: number;
   leetifyRating?: number;
   delta: number;
-  source: "demo" | "gc" | "leetify";
+  source: "demo" | "gc" | "steam" | "leetify";
   isDemo: boolean;
 }
 

@@ -31,6 +31,12 @@ export const workerStatus: SteamWorkerStatus = {
 const queue = new SerialQueue({ delayMs: 1500 });
 let activeUser: SteamUser | null = null;
 let activeCs2: NodeCS2 | null = null;
+let sessionCookies: string | null = null;
+
+/** steamcommunity.com cookies from `webLogOn()`, used by the history poller. */
+export function webCookies(): string | null {
+  return sessionCookies;
+}
 
 export function requestGameByCode(shareCode: string): boolean {
   if (!activeCs2) return false;
@@ -69,6 +75,7 @@ export function stopSteamWorker(): void {
   }
   activeUser = null;
   activeCs2 = null;
+  sessionCookies = null;
   workerStatus.loggedOn = false;
   workerStatus.gcConnected = false;
   workerStatus.enabled = false;
@@ -102,6 +109,15 @@ export function startSteamWorker(options: {
     workerStatus.loggedOn = true;
     workerStatus.lastError = null;
     user.gamesPlayed([730]);
+    try {
+      user.webLogOn();
+    } catch (error) {
+      workerStatus.lastError = error instanceof Error ? error.message : String(error);
+    }
+  });
+
+  user.on("webSession", (_sessionId: string, cookies: string[]) => {
+    sessionCookies = cookies.join("; ");
   });
 
   user.on("error", (error: Error) => {

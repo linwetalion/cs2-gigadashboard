@@ -71,7 +71,7 @@ export function ingestMatchList(payload: GcMatch[], myAccountId: number): Ingest
       hs_kills = excluded.hs_kills, is_me = excluded.is_me
   `);
   const roundStmt = db.prepare(`
-    INSERT OR REPLACE INTO rounds (match_id, round_no, side, eco_band, winner, reason,
+    INSERT OR IGNORE INTO rounds (match_id, round_no, side, eco_band, winner, reason,
       start_tick, end_tick, ct_alive_start, t_alive_start)
     VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)
   `);

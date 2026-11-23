@@ -13,3 +13,4 @@ data/metrics.json
 Thumbs.db
 coverage/
 .vite/
+data/*.db.*

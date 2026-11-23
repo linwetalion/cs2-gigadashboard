@@ -22,15 +22,13 @@ import { decodeShareCode, isShareCode } from "./steam/sharecode.js";
 import { requestRecentMatches, startSteamWorker, stopSteamWorker, workerStatus } from "./steam/worker.js";
 import { processDemo } from "./steam/demo-parse.js";
 import { canWalkHistory, historyStatus, startHistory } from "./steam/history.js";
-import { importLeetifyGames, type LeetifyGame } from "./steam/leetify-import.js";
-import {
-  importLeetifyRoster,
-  pendingRosterIds,
-  type LeetifyOpeningDuel,
-  type LeetifyRosterGame,
-} from "./steam/leetify-import.js";
 import { buildTeams, buildTeamDetail, buildTeamCompare } from "./teams.js";
 import { importSteamReplays, type SteamReplayItem } from "./steam/replay-import.js";
+import {
+  autoIngestStatus,
+  runAutoIngestOnce,
+  startAutoIngest,
+} from "./steam/match-history.js";
 import {
   cancelLogin,
   configureLogin,
@@ -89,6 +87,10 @@ if (restored && process.env.STEAM_AUTOSTART !== "0") {
   });
 } else if (STEAM_SYNC && STEAM_REFRESH_TOKEN) {
   startSteamWorker({ refreshToken: STEAM_REFRESH_TOKEN, steamId: STEAM_ID });
+}
+
+if (process.env.AUTO_INGEST !== "0" && (restored || (STEAM_SYNC && STEAM_REFRESH_TOKEN))) {
+  startAutoIngest(Number(process.env.AUTO_INGEST_MINUTES ?? 20));
 }
 
 const matchCount = (
@@ -229,48 +231,12 @@ app.post("/api/steam/recent", async (_request, reply) => {
   return { ok: true, queued: true };
 });
 
-app.post<{ Body: { games?: LeetifyGame[] } }>("/api/import/leetify", async (request, reply) => {
-  const games = request.body?.games;
-  if (!Array.isArray(games)) {
-    return reply.code(400).send({ code: "GAMES_REQUIRED", message: "games array is required" });
-  }
-  const session = storedSession();
-  if (!session) {
-    return reply.code(409).send({ code: "STEAM_NOT_CONNECTED", message: "Connect Steam first" });
-  }
-  const result = importLeetifyGames(games, session.steamId);
-  return { ok: true, ...result };
-});
 
-app.get("/api/import/leetify/pending", async () => {
-  const ids = pendingRosterIds();
-  return { ok: true, total: ids.length, ids };
-});
+app.get("/api/steam/auto", async () => autoIngestStatus);
 
-app.post<{
-  Body: {
-    items?: Array<{ game?: LeetifyRosterGame; duels?: LeetifyOpeningDuel[] }>;
-    steamId?: string;
-  };
-}>("/api/import/leetify-roster", async (request, reply) => {
-  const items = request.body?.items;
-  if (!Array.isArray(items)) {
-    return reply.code(400).send({ code: "ITEMS_REQUIRED", message: "items array is required" });
-  }
-  const session = storedSession();
-  const steamId = request.body?.steamId ?? session?.steamId;
-  if (!steamId) {
-    return reply
-      .code(409)
-      .send({ code: "STEAM_NOT_CONNECTED", message: "Pass steamId or connect Steam first" });
-  }
-  const normalized = items
-    .filter((item): item is { game: LeetifyRosterGame; duels?: LeetifyOpeningDuel[] } =>
-      Boolean(item?.game?.id)
-    )
-    .map((item) => ({ game: item.game, duels: item.duels ?? [] }));
-  const result = importLeetifyRoster(normalized, steamId);
-  return { ok: true, ...result };
+app.post("/api/steam/auto/run", async () => {
+  void runAutoIngestOnce();
+  return { ok: true, queued: true };
 });
 
 app.post<{ Body: { items?: SteamReplayItem[] } }>(
