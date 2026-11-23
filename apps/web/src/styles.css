@@ -2730,6 +2730,14 @@ button {
   font-weight: 400;
 }
 
+.compare-value.is-base {
+  color: var(--dim);
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .compare-value.best {
   color: #6fce8f;
 }

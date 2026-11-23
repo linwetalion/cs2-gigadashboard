@@ -582,8 +582,8 @@ function funnelDeltaRows(rows: CompareRow[]): CompareRow[] {
       label: row.label,
       hint: "Разница конверсии в процентных пунктах относительно первого состава",
       numeric,
-      values: numeric.map((value) =>
-        value === null ? "—" : `${value > 0 ? "+" : ""}${value.toFixed(1)} п.п.`
+      values: numeric.map((value, index) =>
+        index === 0 ? "база" : value === null ? "—" : `${value > 0 ? "+" : ""}${value.toFixed(1)} п.п.`
       ),
       highlight: "max",
       group: "delta",
@@ -656,8 +656,8 @@ function CompareTable({
                 <span
                   key={`${row.id}-${index}`}
                   className={`compare-value ${value === "—" ? "is-empty" : ""} ${
-                    isBest(row, index) ? "best" : ""
-                  }`}
+                    value === "база" ? "is-base" : ""
+                  } ${isBest(row, index) ? "best" : ""}`}
                 >
                   {value}
                 </span>
