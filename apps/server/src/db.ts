@@ -233,6 +233,8 @@ function ensureColumn(table: string, column: string, definition: string): void {
 ensureColumn("matches", "demo_url", "TEXT");
 ensureColumn("matches", "parsed_at", "INTEGER");
 ensureColumn("matches", "demo_status", "TEXT");
+ensureColumn("matches", "demo_cluster", "INTEGER");
+ensureColumn("matches", "demo_outcome", "TEXT");
 ensureColumn("match_players", "kast", "REAL");
 ensureColumn("match_players", "leetify_rating", "REAL");
 ensureColumn("match_players", "aim", "REAL");
@@ -243,6 +245,15 @@ ensureColumn("match_players", "reaction_time", "REAL");
 ensureColumn("match_players", "rounds_survived", "INTEGER");
 ensureColumn("match_players", "opening_kills", "INTEGER");
 ensureColumn("match_players", "opening_deaths", "INTEGER");
+ensureColumn("match_players", "rounds_played", "INTEGER");
+ensureColumn("match_players", "trade_kills", "INTEGER");
+ensureColumn("match_players", "traded_deaths", "INTEGER");
+ensureColumn("match_players", "clutches_attempted", "INTEGER");
+ensureColumn("match_players", "clutches_won", "INTEGER");
+ensureColumn("match_players", "multi2k", "INTEGER");
+ensureColumn("match_players", "multi3k", "INTEGER");
+ensureColumn("match_players", "multi4k", "INTEGER");
+ensureColumn("match_players", "multi5k", "INTEGER");
 
 // Round-level advantage funnel per match. Populated from Leetify opening
 // duels (one opening duel per round) and from demo round data when present.

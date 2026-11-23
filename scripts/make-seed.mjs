@@ -113,7 +113,7 @@ seed.prepare("UPDATE grenades SET thrower = NULL").run();
 // Match-level identifiers that are not needed for rendering.
 seed
   .prepare(
-    "UPDATE matches SET share_code = NULL, demo_hash = NULL, demo_url = NULL, parsed_at = NULL, demo_status = NULL"
+    "UPDATE matches SET share_code = NULL, demo_hash = NULL, demo_url = NULL, parsed_at = NULL, demo_status = NULL, demo_outcome = NULL, demo_cluster = NULL"
   )
   .run();
 

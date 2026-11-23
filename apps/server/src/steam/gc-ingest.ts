@@ -26,7 +26,11 @@ interface RoundStats {
 interface GcMatch {
   matchid?: string;
   matchtime?: number;
-  watchablematchinfo?: { game_map?: string | null; tv_port?: number };
+  watchablematchinfo?: {
+    game_map?: string | null;
+    server_ip?: number | null;
+    tv_port?: number | null;
+  };
   roundstatsall?: RoundStats[];
 }
 
@@ -44,8 +48,9 @@ export interface IngestResult {
 export function ingestMatchList(payload: GcMatch[], myAccountId: number): IngestResult {
   const matchStmt = db.prepare(`
     INSERT INTO matches (match_id, season_id, mode, map, format, started_at, ended_at,
-      score_us, score_them, result, duration_min, status, source, is_demo, demo_url, demo_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', 'gc', 0, ?, ?)
+      score_us, score_them, result, duration_min, status, source, is_demo, demo_url,
+      demo_status, demo_outcome, demo_cluster)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', 'gc', 0, NULL, ?, ?, ?)
     ON CONFLICT(match_id) DO UPDATE SET
       started_at = excluded.started_at,
       score_us = excluded.score_us,
@@ -54,7 +59,8 @@ export function ingestMatchList(payload: GcMatch[], myAccountId: number): Ingest
       duration_min = excluded.duration_min,
       source = 'gc',
       is_demo = 0,
-      demo_url = COALESCE(excluded.demo_url, matches.demo_url)
+      demo_outcome = COALESCE(excluded.demo_outcome, matches.demo_outcome),
+      demo_cluster = COALESCE(excluded.demo_cluster, matches.demo_cluster)
   `);
   const playerStmt = db.prepare(`
     INSERT INTO match_players (match_id, steamid, name, team, kills, deaths, assists,
@@ -94,6 +100,8 @@ export function ingestMatchList(payload: GcMatch[], myAccountId: number): Ingest
       const durationMin = last.match_duration ? Math.round(last.match_duration / 60) : null;
       const map = "unknown";
       const startedAt = (match.matchtime ?? 0) * 1000;
+      const outcome = match.watchablematchinfo?.tv_port;
+      const cluster = match.watchablematchinfo?.server_ip;
 
       matchStmt.run(
         match.matchid,
@@ -107,8 +115,9 @@ export function ingestMatchList(payload: GcMatch[], myAccountId: number): Ingest
         theirScore,
         result,
         durationMin,
-        last.map ?? null,
-        last.map ? "available" : "missing"
+        last.map ? "available" : "missing",
+        outcome ? String(outcome) : null,
+        cluster ?? null
       );
 
       for (let i = 0; i < accountIds.length; i++) {

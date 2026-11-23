@@ -30,6 +30,7 @@ import {
   type LeetifyRosterGame,
 } from "./steam/leetify-import.js";
 import { buildTeams, buildTeamDetail, buildTeamCompare } from "./teams.js";
+import { importSteamReplays, type SteamReplayItem } from "./steam/replay-import.js";
 import {
   cancelLogin,
   configureLogin,
@@ -271,6 +272,17 @@ app.post<{
   const result = importLeetifyRoster(normalized, steamId);
   return { ok: true, ...result };
 });
+
+app.post<{ Body: { items?: SteamReplayItem[] } }>(
+  "/api/import/steam-replays",
+  async (request, reply) => {
+    const items = request.body?.items;
+    if (!Array.isArray(items)) {
+      return reply.code(400).send({ code: "ITEMS_REQUIRED", message: "items array is required" });
+    }
+    return { ok: true, ...importSteamReplays(items) };
+  }
+);
 
 app.get<{ Querystring: Record<string, string> }>("/api/teams", async (request) => {
   return buildTeams(request.query);

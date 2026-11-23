@@ -4042,6 +4042,7 @@ Leetify отдаёт aim-рейтинг не для каждого матча. �
 | GET | `/api/teams/compare?a=&b=` | два `TeamDetailPayload` |
 | GET | `/api/import/leetify/pending` | id матчей без полного ростера |
 | POST | `/api/import/leetify-roster` | импорт ростера + опенингов батчем |
+| POST | `/api/import/steam-replays` | список replay-URL из Steam → `matches.demo_url` |
 
 ## 10.8. Приватность и seed
 
@@ -4058,3 +4059,69 @@ Leetify отдаёт aim-рейтинг не для каждого матча. �
 - каждое изменение кода/данных коммитится и пушится в `main` без отдельной просьбы;
 - `npm run autopublish` делает `add → commit → push`, а затем вызывает Render deploy hook, если задан `RENDER_DEPLOY_HOOK_URL` (в `.env` или в окружении);
 - без хука деплой запускается вручную: Render → Manual Deploy → Deploy latest commit.
+
+# 11. Источники данных: только Steam
+
+Цель раздела — убрать третьи стороны (Leetify) и считать всё из данных Valve.
+
+## 11.1. Каналы Steam
+
+| Канал | Что даёт | Код |
+|---|---|---|
+| Личная страница Game Data (`steamcommunity.com/profiles/<id>/gcpd/730/?tab=matchhistorypremier&ajax=1`) | карта, время матча, **прямая ссылка на демку** | сбор в браузере → `POST /api/import/steam-replays` |
+| Replay CDN Valve | файл `.dem.bz2` | `scripts/fetch-demos.ts` |
+| Game Coordinator (`matchList`, `requestGame`) | matchid, счёт, roster, kills/deaths/assists/HS, `watchablematchinfo` | `steam/worker.ts`, `steam/gc-ingest.ts` |
+| Steam Web API (`GetNextMatchSharingCode`) | перечисление share code (резервный канал) | `steam/webapi.ts` |
+
+## 11.2. Ссылка на демку
+
+Формат: `http://replay<cluster>.valve.net/730/<demoMatchId>_<outcomeId>.dem.bz2`.
+
+- `demoMatchId` **не равен** `matchid` из GC: это отдельный номер, который Valve печатает только в ссылке на демку.
+- `outcomeId` совпадает с `watchablematchinfo.tv_port`.
+- кластер не определяется из GC надёжно: файл реплицирован на несколько хостов. `steam/demo-source.ts` перебирает известные кластеры и проверяет **размер файла** (`content-range` / `x-goog-stored-content-length` > 1 МБ), потому что CDN отвечает `206` даже на отсутствующий файл, отдавая маленькое XML-тело.
+- HTTPS с некоторых машин падает на TLS, поэтому используется `http://`.
+
+## 11.3. Конвейер
+
+```
+gcpd page ──► POST /api/import/steam-replays ──► matches.demo_url
+                                                      │
+                          npm run demos:fetch ◄───────┘
+                                    │
+                    download → unbzip2 → parse → delete
+                                    │
+                  kills / damage / shots / grenades / positions / rounds
+                                    │
+                          npm run metrics:demo
+                                    │
+                openings, trades, clutches, multikills, survival
+```
+
+- Демка распаковывается, парсится и **удаляется**: на диске остаются только агрегаты.
+- Повторный расчёт агрегатов не требует демки — он читает `kills` и `rounds`.
+- Матчи без демки помечаются `demo_status = 'expired'`, если Valve уже удалил файл.
+
+## 11.4. Что считается из демки
+
+| Домен | Метрики | Источник |
+|---|---|---|
+| Опенинги | ENT-001…ENT-004 | первый килл раунда; победа = команда киллера выиграла раунд |
+| Трейды | TRD-003…TRD-005 | смерть, обменянная союзником в течение 4 с (256 тиков) |
+| Клатчи | CLT-001…CLT-004 | игрок остался последним живым на своей стороне |
+| Мультикиллы | MLT-001…MLT-005 | убийства одного игрока в раунде: 2/3/4/5 |
+| Выживание | `rounds_survived` | игрок не умер до конца раунда |
+| Точность | ACC-003…ACC-011 | `shots` / `damage` с hitgroup |
+| Ютилити | UTL-004, UTL-018, UTL-023, UTL-024, UTL-027, UTL-028 | `grenades`, урон HE/молотов |
+
+Формулы совпадают с §7; поля хранятся в `match_players`:
+`rounds_played`, `rounds_survived`, `opening_kills`, `opening_deaths`, `trade_kills`,
+`traded_deaths`, `clutches_attempted`, `clutches_won`, `multi2k…multi5k`.
+
+Метрики, зависящие от demos, считаются **только по матчам с демкой** (`rounds_played IS NOT NULL`), чтобы знаменатель не разбавлялся матчами без событий.
+
+## 11.5. Статус переезда
+
+- Матчи с демкой: 8 (165 раундов). Все остальные пока без событий.
+- `GET /api/import/leetify*` остаются как временный мост и будут удалены, когда демок станет достаточно.
+- Публичный снимок по-прежнему обезличивается; `demo_url` в снимок не попадает.

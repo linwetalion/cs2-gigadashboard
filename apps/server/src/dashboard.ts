@@ -16,6 +16,7 @@ import {
 } from "./demo.js";
 import { metric, metrics, registryVersion } from "./registry.js";
 import { applyRealMetrics } from "./real-metrics.js";
+import { applyDemoMetrics } from "./demo-metrics.js";
 import { sections } from "./widgets.js";
 
 const PLAYER = {
@@ -92,11 +93,10 @@ export function buildDashboard(rawFilters: Record<string, string | undefined>): 
   }
 
   const matches = filteredMatches(filters);
+  const realIds = matches.filter((match) => !match.isDemo).map((match) => match.matchId);
   applyMatchAggregates(values, matches);
-  applyRealMetrics(
-    values,
-    matches.filter((match) => !match.isDemo).map((match) => match.matchId)
-  );
+  applyRealMetrics(values, realIds);
+  applyDemoMetrics(values, realIds);
 
   const series: Record<string, SeriesPoint[]> = {};
   for (const section of sections) {
