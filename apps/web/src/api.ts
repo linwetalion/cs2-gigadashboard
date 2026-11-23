@@ -1,10 +1,43 @@
-import type { DashboardPayload, Metric, MetricValue } from "@giga/shared";
+import type {
+  DashboardPayload,
+  Metric,
+  MetricValue,
+  TeamDetailPayload,
+  TeamsPayload,
+} from "@giga/shared";
 
 export async function fetchDashboard(filters: Record<string, string>): Promise<DashboardPayload> {
   const params = new URLSearchParams(filters);
   const response = await fetch(`/api/dashboard?${params.toString()}`);
   if (!response.ok) throw new Error(`Dashboard request failed: ${response.status}`);
   return response.json() as Promise<DashboardPayload>;
+}
+
+export async function fetchTeams(filters: Record<string, string>): Promise<TeamsPayload> {
+  const params = new URLSearchParams(filters);
+  const response = await fetch(`/api/teams?${params.toString()}`);
+  if (!response.ok) throw new Error(`Teams request failed: ${response.status}`);
+  return response.json() as Promise<TeamsPayload>;
+}
+
+export async function fetchTeam(
+  key: string,
+  filters: Record<string, string>
+): Promise<TeamDetailPayload> {
+  const params = new URLSearchParams(filters);
+  const response = await fetch(`/api/teams/${encodeURIComponent(key)}?${params.toString()}`);
+  if (!response.ok) throw new Error(`Team request failed: ${response.status}`);
+  return response.json() as Promise<TeamDetailPayload>;
+}
+
+export async function fetchTeamCompare(
+  a: string,
+  b: string
+): Promise<{ a: TeamDetailPayload; b: TeamDetailPayload }> {
+  const params = new URLSearchParams({ a, b });
+  const response = await fetch(`/api/teams/compare?${params.toString()}`);
+  if (!response.ok) throw new Error(`Team compare failed: ${response.status}`);
+  return response.json() as Promise<{ a: TeamDetailPayload; b: TeamDetailPayload }>;
 }
 
 export async function fetchMetrics(): Promise<Record<string, Metric>> {

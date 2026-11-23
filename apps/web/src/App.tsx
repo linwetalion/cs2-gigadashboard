@@ -3,19 +3,30 @@ import type { DashboardPayload, Metric } from "@giga/shared";
 import { fetchDashboard, fetchMetrics } from "./api";
 import { FilterBar } from "./components/FilterBar";
 import { SteamModal } from "./components/SteamModal";
+import { TeamsView } from "./components/TeamsView";
 import { TooltipDrawer } from "./components/TooltipPanel";
 import { Widget } from "./components/Widget";
 import { steamApi, type SteamStatus } from "./api";
 
+type Tab = "individual" | "teams";
+
 function initialFilters(): Record<string, string> {
   const params = new URLSearchParams(window.location.search);
-  return Object.fromEntries(params.entries());
+  const filters = Object.fromEntries(params.entries());
+  delete filters.tab;
+  return filters;
+}
+
+function initialTab(): Tab {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("tab") === "teams" ? "teams" : "individual";
 }
 
 export default function App() {
   const [metrics, setMetrics] = useState<Record<string, Metric> | null>(null);
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [filters, setFilters] = useState<Record<string, string>>(initialFilters);
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openMetric, setOpenMetric] = useState<string | null>(null);
@@ -45,6 +56,7 @@ export default function App() {
     const controller = new AbortController();
     setLoading(true);
     const params = new URLSearchParams(filters);
+    if (tab === "teams") params.set("tab", "teams");
     history.replaceState(null, "", params.size ? `?${params.toString()}` : location.pathname);
     fetchDashboard(filters)
       .then((payload) => {
@@ -58,7 +70,7 @@ export default function App() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [filters]);
+  }, [filters, tab]);
 
   const activeFilters = useMemo(() => {
     if (!data) return [];
@@ -76,7 +88,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app tab-${tab}`}>
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">G</span>
@@ -108,28 +120,64 @@ export default function App() {
 
       <section className="hero">
         <div>
-          <span className="eyebrow">Один срез — все метрики</span>
-          <h1>Гигадашборд</h1>
+          <span className="eyebrow">
+            {tab === "individual" ? "Один срез — все метрики" : "Командная аналитика"}
+          </span>
+          <h1>{tab === "individual" ? "Гигадашборд" : "Teams"}</h1>
           <p>
-            538 метрик, 27 доменов, формулы и тултипы у каждой цифры. Фильтры применяются ко всем
-            виджетам одновременно.
+            {tab === "individual"
+              ? "538 метрик, 27 доменов, формулы и тултипы у каждой цифры. Фильтры применяются ко всем виджетам одновременно."
+              : "Топ-10 пятёрок по совместным играм, метрики всей команды, воронка 5v4 и сравнение составов на конверсии."}
           </p>
         </div>
         <div className="hero-stats">
-          <div>
-            <b>{data?.meta.sampleRounds ?? "—"}</b>
-            <span>раундов</span>
-          </div>
-          <div>
-            <b>{Object.keys(data?.values ?? {}).length}</b>
-            <span>метрик</span>
-          </div>
-          <div>
-            <b>{data?.meta.sampleMatches ?? "—"}</b>
-            <span>матчей</span>
-          </div>
+          {tab === "individual" ? (
+            <>
+              <div>
+                <b>{data?.meta.sampleRounds ?? "—"}</b>
+                <span>раундов</span>
+              </div>
+              <div>
+                <b>{Object.keys(data?.values ?? {}).length}</b>
+                <span>метрик</span>
+              </div>
+              <div>
+                <b>{data?.meta.sampleMatches ?? "—"}</b>
+                <span>матчей</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <b>{data?.meta.sampleMatches ?? "—"}</b>
+                <span>матчей в фильтре</span>
+              </div>
+              <div>
+                <b>{data?.meta.sampleRounds ?? "—"}</b>
+                <span>раундов</span>
+              </div>
+              <div>
+                <b>5</b>
+                <span>игроков в составе</span>
+              </div>
+            </>
+          )}
         </div>
       </section>
+
+      <nav className="tabbar" aria-label="Разделы">
+        <button
+          className={tab === "individual" ? "tab active" : "tab"}
+          onClick={() => setTab("individual")}
+        >
+          <i>01</i>
+          Индивидуальная статистика
+        </button>
+        <button className={tab === "teams" ? "tab active" : "tab"} onClick={() => setTab("teams")}>
+          <i>02</i>
+          Teams
+        </button>
+      </nav>
 
       {data && (
         <FilterBar
@@ -164,16 +212,21 @@ export default function App() {
         </div>
       )}
 
-      <nav className="section-nav">
-        {data?.sections.map((section, index) => (
-          <a key={section.id} href={`#${section.id}`}>
-            <i>{String(index + 1).padStart(2, "0")}</i>
-            {section.title}
-          </a>
-        ))}
-      </nav>
+      {tab === "individual" && (
+        <nav className="section-nav">
+          {data?.sections.map((section, index) => (
+            <a key={section.id} href={`#${section.id}`}>
+              <i>{String(index + 1).padStart(2, "0")}</i>
+              {section.title}
+            </a>
+          ))}
+        </nav>
+      )}
 
-      <main className={loading ? "dashboard is-loading" : "dashboard"}>
+      {tab === "teams" && <TeamsView filters={filters} />}
+
+      {tab === "individual" && (
+        <main className={loading ? "dashboard is-loading" : "dashboard"}>
         {!data && <div className="skeleton-grid">{[...Array(8)].map((_, index) => <div key={index} className="skeleton" />)}</div>}
 
         {data?.sections.map((section) => (
@@ -239,6 +292,7 @@ export default function App() {
           </section>
         )}
       </main>
+      )}
 
       <footer className="footer">
         <span>
