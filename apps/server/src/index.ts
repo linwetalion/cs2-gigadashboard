@@ -24,6 +24,13 @@ import { processDemo } from "./steam/demo-parse.js";
 import { canWalkHistory, historyStatus, startHistory } from "./steam/history.js";
 import { importLeetifyGames, type LeetifyGame } from "./steam/leetify-import.js";
 import {
+  importLeetifyRoster,
+  pendingRosterIds,
+  type LeetifyOpeningDuel,
+  type LeetifyRosterGame,
+} from "./steam/leetify-import.js";
+import { buildTeams, buildTeamDetail, buildTeamCompare } from "./teams.js";
+import {
   cancelLogin,
   configureLogin,
   loginState,
@@ -35,7 +42,10 @@ import {
   submitGuard,
 } from "./steam/login.js";
 
-const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "info" } });
+const app = Fastify({
+  logger: { level: process.env.LOG_LEVEL ?? "info" },
+  bodyLimit: 64 * 1024 * 1024,
+});
 await app.register(cors, { origin: true });
 
 // Optional HTTP Basic Auth. Required whenever the app is exposed outside loopback.
@@ -230,6 +240,64 @@ app.post<{ Body: { games?: LeetifyGame[] } }>("/api/import/leetify", async (requ
   const result = importLeetifyGames(games, session.steamId);
   return { ok: true, ...result };
 });
+
+app.get("/api/import/leetify/pending", async () => {
+  const ids = pendingRosterIds();
+  return { ok: true, total: ids.length, ids };
+});
+
+app.post<{
+  Body: {
+    items?: Array<{ game?: LeetifyRosterGame; duels?: LeetifyOpeningDuel[] }>;
+    steamId?: string;
+  };
+}>("/api/import/leetify-roster", async (request, reply) => {
+  const items = request.body?.items;
+  if (!Array.isArray(items)) {
+    return reply.code(400).send({ code: "ITEMS_REQUIRED", message: "items array is required" });
+  }
+  const session = storedSession();
+  const steamId = request.body?.steamId ?? session?.steamId;
+  if (!steamId) {
+    return reply
+      .code(409)
+      .send({ code: "STEAM_NOT_CONNECTED", message: "Pass steamId or connect Steam first" });
+  }
+  const normalized = items
+    .filter((item): item is { game: LeetifyRosterGame; duels?: LeetifyOpeningDuel[] } =>
+      Boolean(item?.game?.id)
+    )
+    .map((item) => ({ game: item.game, duels: item.duels ?? [] }));
+  const result = importLeetifyRoster(normalized, steamId);
+  return { ok: true, ...result };
+});
+
+app.get<{ Querystring: Record<string, string> }>("/api/teams", async (request) => {
+  return buildTeams(request.query);
+});
+
+app.get<{ Querystring: { a?: string; b?: string } }>("/api/teams/compare", async (request, reply) => {
+  const { a, b } = request.query;
+  if (!a || !b) {
+    return reply.code(400).send({ code: "TEAMS_REQUIRED", message: "a and b are required" });
+  }
+  try {
+    return buildTeamCompare(a, b);
+  } catch {
+    return reply.code(404).send({ code: "TEAM_NOT_FOUND", message: `${a} / ${b}` });
+  }
+});
+
+app.get<{ Params: { key: string }; Querystring: Record<string, string> }>(
+  "/api/teams/:key",
+  async (request, reply) => {
+    const detail = buildTeamDetail(request.params.key, request.query);
+    if (!detail) {
+      return reply.code(404).send({ code: "TEAM_NOT_FOUND", message: request.params.key });
+    }
+    return detail;
+  }
+);
 
 app.get("/api/steam/history", async () => ({
   status: historyStatus,

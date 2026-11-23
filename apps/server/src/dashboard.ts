@@ -215,7 +215,7 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
   };
 }
 
-function filteredMatches(filters: Record<string, string>): MatchSummary[] {
+export function filteredMatches(filters: Record<string, string>): MatchSummary[] {
   const rows = readMatches(1000);
   const now = Date.now();
   const rangeMs =

@@ -238,6 +238,28 @@ ensureColumn("match_players", "leetify_rating", "REAL");
 ensureColumn("match_players", "aim", "REAL");
 ensureColumn("match_players", "utility", "REAL");
 ensureColumn("match_players", "positioning", "REAL");
+ensureColumn("match_players", "preaim", "REAL");
+ensureColumn("match_players", "reaction_time", "REAL");
+ensureColumn("match_players", "rounds_survived", "INTEGER");
+ensureColumn("match_players", "opening_kills", "INTEGER");
+ensureColumn("match_players", "opening_deaths", "INTEGER");
+
+// Round-level advantage funnel per match. Populated from Leetify opening
+// duels (one opening duel per round) and from demo round data when present.
+// "opening_won" = our team got the first kill, i.e. the round reached 5v4.
+db.exec(`
+CREATE TABLE IF NOT EXISTS match_funnel (
+  match_id TEXT PRIMARY KEY REFERENCES matches(match_id) ON DELETE CASCADE,
+  rounds INTEGER NOT NULL DEFAULT 0,
+  opening_won INTEGER NOT NULL DEFAULT 0,
+  opening_won_won INTEGER NOT NULL DEFAULT 0,
+  opening_won_untraded INTEGER NOT NULL DEFAULT 0,
+  opening_won_untraded_won INTEGER NOT NULL DEFAULT 0,
+  opening_lost INTEGER NOT NULL DEFAULT 0,
+  opening_lost_won INTEGER NOT NULL DEFAULT 0,
+  all_survived_won INTEGER,
+  source TEXT NOT NULL DEFAULT 'leetify'
+)`);
 
 export function setMeta(key: string, value: string) {
   db.prepare(
