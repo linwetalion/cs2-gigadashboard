@@ -23,11 +23,13 @@ const report = {
   realSteamIds: one(
     "SELECT COUNT(*) c FROM match_players WHERE steamid GLOB '7656119*'"
   ).c,
+  extraSteamIds: one(
+    "SELECT COUNT(*) c FROM match_player_extra WHERE steamid GLOB '7656119*'"
+  ).c,
   realMatchIds: one(
     "SELECT COUNT(*) c FROM matches WHERE match_id LIKE 'leetify:%' OR match_id LIKE 'csgo_%'"
   ).c,
-  shotSteamids: one("SELECT COUNT(*) c FROM shots WHERE steamid IS NOT NULL").c,
-  damageSteamids: one(
+  shotSteamids: one("SELECT COUNT(*) c FROM shots WHERE steamid IS NOT NULL").c,  damageSteamids: one(
     "SELECT COUNT(*) c FROM damage WHERE attacker IS NOT NULL OR victim IS NOT NULL"
   ).c,
   grenadeThrowers: one("SELECT COUNT(*) c FROM grenades WHERE thrower IS NOT NULL").c,
@@ -42,6 +44,7 @@ const report = {
 
 const leaks = [];
 if (report.realSteamIds > 0) leaks.push(`${report.realSteamIds} real steamids`);
+if (report.extraSteamIds > 0) leaks.push(`${report.extraSteamIds} real steamids in extras`);
 if (report.realMatchIds > 0) leaks.push(`${report.realMatchIds} real match ids`);
 if (report.shotSteamids > 0) leaks.push(`${report.shotSteamids} shot steamids`);
 if (report.damageSteamids > 0) leaks.push(`${report.damageSteamids} damage steamids`);

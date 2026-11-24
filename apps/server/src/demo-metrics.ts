@@ -457,8 +457,91 @@ export function applyDemoMetrics(
 }
 
 /* ------------------------------------------------------------------ */
-/* Second wave: objective, weapon mix, team play, records, seasons      */
+/* Third wave: movement, positioning, aim placement, economy           */
 /* ------------------------------------------------------------------ */
+
+function medianOf(values: Array<number | null>): number | null {
+  const clean = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (!clean.length) return null;
+  const sorted = [...clean].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
+export function applyPositionMetrics(
+  values: Record<string, MetricValue>,
+  matchIds: string[]
+): void {
+  if (!matchIds.length) return;
+  const ph = matchIds.map(() => "?").join(",");
+  const rows = db
+    .prepare(
+      `SELECT e.* FROM match_player_extra e
+       JOIN match_players p ON p.match_id = e.match_id AND p.steamid = e.steamid
+       WHERE p.is_me = 1 AND e.match_id IN (${ph})`
+    )
+    .all(...matchIds) as Array<{
+    samples: number;
+    distance: number;
+    moving_samples: number;
+    walk_samples: number;
+    duck_samples: number;
+    zones: number;
+    nearest_median: number | null;
+    isolation_samples: number;
+    crosshair_median: number | null;
+    equip_median: number | null;
+    cash_median: number | null;
+    rounds_started: number;
+    full_buys: number;
+    eco_rounds: number;
+    force_rounds: number;
+    pistol_rounds: number;
+    full_buy_wins: number;
+    eco_wins: number;
+    force_wins: number;
+    pistol_wins: number;
+  }>;
+  if (!rows.length) return;
+
+  const sum = (key: keyof (typeof rows)[number]) =>
+    rows.reduce((total, row) => total + Number(row[key] ?? 0), 0);
+  const samples = sum("samples");
+  const rounds = sum("rounds_started");
+  if (!samples || !rounds) return;
+  const n = matchIds.length;
+
+  putValue(values, "MOV-001", sum("distance") / rounds, rounds);
+  putValue(values, "MOV-002", (sum("moving_samples") / samples) * 100, samples);
+  putValue(values, "MOV-003", sum("distance") / samples, samples);
+  putValue(values, "MOV-005", (sum("walk_samples") / samples) * 100, samples);
+  putValue(values, "MOV-006", (sum("duck_samples") / samples) * 100, samples);
+
+  putValue(values, "POS-007", sum("zones") / n, n);
+  putValue(values, "POS-012", (sum("isolation_samples") / samples) * 100, samples);
+  const nearest = medianOf(rows.map((row) => row.nearest_median));
+  if (nearest !== null) putValue(values, "POS-011", nearest, rounds);
+
+  const crosshair = medianOf(rows.map((row) => row.crosshair_median));
+  if (crosshair !== null) putValue(values, "AIM-001", crosshair, samples);
+
+  const equip = medianOf(rows.map((row) => row.equip_median));
+  if (equip !== null) putValue(values, "ECO-001", equip, rounds);
+  const cash = medianOf(rows.map((row) => row.cash_median));
+  if (cash !== null) putValue(values, "ECO-002", cash, rounds);
+  putValue(values, "ECO-005", (sum("full_buys") / rounds) * 100, rounds);
+  putValue(values, "ECO-006", (sum("eco_rounds") / rounds) * 100, rounds);
+
+  const ratio = (wins: number, total: number) => (total ? (wins / total) * 100 : null);
+  const pistol = ratio(sum("pistol_wins"), sum("pistol_rounds"));
+  if (pistol !== null) putValue(values, "ECO-007", pistol, sum("pistol_rounds"));
+  const force = ratio(sum("force_wins"), sum("force_rounds"));
+  if (force !== null) putValue(values, "ECO-009", force, sum("force_rounds"));
+  const full = ratio(sum("full_buy_wins"), sum("full_buys"));
+  if (full !== null) putValue(values, "ECO-010", full, sum("full_buys"));
+  const eco = ratio(sum("eco_wins"), sum("eco_rounds"));
+  if (eco !== null) putValue(values, "ECO-008", eco, sum("eco_rounds"));
+}
 
 const PISTOLS = /^(glock|usp|usp_silencer|p2000|p250|deagle|revolver|elite|tec9|fiveseven|cz75a)/;
 const SNIPERS = /^(awp|ssg08|scar20|g3sg1)/;
@@ -555,6 +638,18 @@ export function applyExtendedMetrics(
   // TEA-005 is intentionally not filled: a static roster label cannot tell a
   // team kill from a normal one across the halftime side swap.
 
+  // ENT-006: opening wins that were not traded back immediately.
+  const funnel = db
+    .prepare(
+      `SELECT COALESCE(SUM(opening_won_untraded), 0) AS untraded,
+              COALESCE(SUM(opening_won), 0) AS won
+       FROM match_funnel WHERE match_id IN (${ph})`
+    )
+    .get(...matchIds) as { untraded: number; won: number };
+  if (Number(funnel.untraded) > 0) {
+    putValue(values, "ENT-006", Number(funnel.untraded), roundCount);
+  }
+
   // REC-003…006: personal records inside the current slice.
   const rec = db
     .prepare(
@@ -571,6 +666,32 @@ export function applyExtendedMetrics(
   if (rec.deaths !== null) putValue(values, "REC-004", Number(rec.deaths), matchIds.length);
   if (rec.assists !== null) putValue(values, "REC-005", Number(rec.assists), matchIds.length);
   if (rec.adr !== null) putValue(values, "REC-006", Number(rec.adr), matchIds.length);
+
+  const records = db
+    .prepare(
+      `SELECT MAX(opening_kills) AS openings, MAX(clutches_won) AS clutches,
+              MAX(CASE WHEN kills >= 10 THEN (hs_kills * 100.0) / kills END) AS hs
+       FROM match_players WHERE is_me = 1 AND match_id IN (${ph})`
+    )
+    .get(...matchIds) as {
+    openings: number | null;
+    clutches: number | null;
+    hs: number | null;
+  };
+  if (records.openings !== null) putValue(values, "REC-011", Number(records.openings), matchIds.length);
+  if (records.clutches !== null) putValue(values, "REC-012", Number(records.clutches), matchIds.length);
+  if (records.hs !== null) putValue(values, "REC-007", Number(records.hs), matchIds.length);
+
+  // FRM-013: matches per active day.
+  const days = db
+    .prepare(
+      `SELECT COUNT(*) AS matches, COUNT(DISTINCT date(started_at / 1000, 'unixepoch')) AS days
+       FROM matches WHERE match_id IN (${ph})`
+    )
+    .get(...matchIds) as { matches: number; days: number };
+  if (Number(days.days) > 0) {
+    putValue(values, "FRM-013", Number(days.matches) / Number(days.days), Number(days.days));
+  }
 
   // SEA-001 / SEA-002: matches and win rate of the selected season slice.
   const sea = db
@@ -595,5 +716,160 @@ export function applyExtendedMetrics(
   if (span.first && span.last) {
     const weeks = Math.max(1, (Number(span.last) - Number(span.first)) / 604_800_000);
     putValue(values, "FRM-020", Number(span.minutes ?? 0) / 60 / weeks, Number(sea.n));
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Sessions, highlights, mistakes                                      */
+/* ------------------------------------------------------------------ */
+
+const SESSION_GAP_MS = 2 * 60 * 60 * 1000;
+
+export function applySessionMetrics(
+  values: Record<string, MetricValue>,
+  matches: Array<{
+    startedAt: string;
+    result: "win" | "loss" | "tie";
+    kills: number;
+    deaths: number;
+    adr: number;
+  }>
+): void {
+  if (!matches.length) return;
+  const ordered = [...matches].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+
+  const sessions: Array<typeof ordered> = [];
+  let current: typeof ordered = [];
+  let previous: number | null = null;
+  for (const match of ordered) {
+    const at = new Date(match.startedAt).getTime();
+    if (previous !== null && at - previous > SESSION_GAP_MS && current.length) {
+      sessions.push(current);
+      current = [];
+    }
+    current.push(match);
+    previous = at;
+  }
+  if (current.length) sessions.push(current);
+
+  const sizes = sessions.map((session) => session.length);
+  const spans = sessions.map((session) => {
+    const first = new Date(session[0]!.startedAt).getTime();
+    const last = new Date(session[session.length - 1]!.startedAt).getTime();
+    return Math.round((last - first) / 60000);
+  });
+
+  const wins = ordered.filter((match) => match.result === "win").length;
+  const kills = ordered.reduce((sum, match) => sum + match.kills, 0);
+  const deaths = ordered.reduce((sum, match) => sum + match.deaths, 0);
+  const adr = ordered.reduce((sum, match) => sum + match.adr, 0);
+
+  putValue(values, "SES-001", sessions.length, matches.length);
+  const perSession = medianOf(sizes);
+  if (perSession !== null) putValue(values, "SES-002", perSession, sessions.length);
+  const duration = medianOf(spans);
+  if (duration !== null) putValue(values, "SES-003", duration, sessions.length);
+  putValue(values, "SES-004", (wins / ordered.length) * 100, ordered.length);
+  putValue(values, "SES-006", deaths ? kills / deaths : kills, ordered.length);
+  putValue(values, "SES-007", adr / ordered.length, ordered.length);
+
+  let firstHalf = { wins: 0, total: 0 };
+  let secondHalf = { wins: 0, total: 0 };
+  for (const session of sessions) {
+    const middle = Math.ceil(session.length / 2);
+    session.forEach((match, index) => {
+      const bucket = index < middle ? firstHalf : secondHalf;
+      bucket.total += 1;
+      if (match.result === "win") bucket.wins += 1;
+    });
+  }
+  if (firstHalf.total) {
+    putValue(values, "SES-011", (firstHalf.wins / firstHalf.total) * 100, firstHalf.total);
+  }
+  if (secondHalf.total) {
+    putValue(values, "SES-012", (secondHalf.wins / secondHalf.total) * 100, secondHalf.total);
+  }
+
+  const late = ordered.filter((match) => new Date(match.startedAt).getUTCHours() >= 19);
+  if (late.length) {
+    putValue(values, "SES-014", (late.length / ordered.length) * 100, ordered.length);
+    putValue(
+      values,
+      "SES-015",
+      (late.filter((match) => match.result === "win").length / late.length) * 100,
+      late.length
+    );
+  }
+}
+
+export function applyHighlightMetrics(
+  values: Record<string, MetricValue>,
+  matchIds: string[]
+): void {
+  if (!matchIds.length) return;
+  const ph = matchIds.map(() => "?").join(",");
+
+  const multi = db
+    .prepare(
+      `SELECT COUNT(*) AS rounds FROM (
+         SELECT match_id, round_no, killer, COUNT(*) AS c
+         FROM kills WHERE match_id IN (${ph}) AND killer IS NOT NULL AND killer != victim
+         GROUP BY match_id, round_no, killer HAVING c >= 3
+       )`
+    )
+    .get(...matchIds) as { rounds: number };
+
+  const trick = db
+    .prepare(
+      `SELECT SUM(CASE WHEN wallbang = 1 THEN 1 ELSE 0 END) AS wallbangs,
+              SUM(CASE WHEN noscope = 1 THEN 1 ELSE 0 END) AS noscopes
+       FROM kills WHERE match_id IN (${ph})`
+    )
+    .get(...matchIds) as { wallbangs: number | null; noscopes: number | null };
+
+  const clutches = db
+    .prepare(
+      `SELECT COALESCE(SUM(clutches_won), 0) AS wins FROM match_players
+       WHERE is_me = 1 AND match_id IN (${ph})`
+    )
+    .get(...matchIds) as { wins: number };
+
+  const highlights =
+    Number(multi.rounds) +
+    Number(trick.wallbangs ?? 0) +
+    Number(trick.noscopes ?? 0) +
+    Number(clutches.wins);
+
+  if (highlights > 0) {
+    putValue(values, "HIG-001", highlights, matchIds.length);
+    putValue(values, "HIG-002", highlights / matchIds.length, matchIds.length);
+    putValue(values, "HIG-013", Number(clutches.wins), matchIds.length);
+
+    const matchesWithHighlight = db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM (
+           SELECT k.match_id FROM kills k
+           WHERE k.match_id IN (${ph}) AND k.killer IS NOT NULL AND k.killer != k.victim
+           GROUP BY k.match_id, k.round_no, k.killer HAVING COUNT(*) >= 3
+           UNION
+           SELECT k.match_id FROM kills k
+           WHERE k.match_id IN (${ph}) AND (k.wallbang = 1 OR k.noscope = 1)
+         )`
+      )
+      .get(...matchIds, ...matchIds) as { c: number };
+    putValue(values, "HIG-015", (Number(matchesWithHighlight.c) / matchIds.length) * 100, matchIds.length);
+  }
+
+  const untraded = db
+    .prepare(
+      `SELECT COALESCE(SUM(deaths), 0) AS deaths, COALESCE(SUM(traded_deaths), 0) AS traded
+       FROM match_players WHERE is_me = 1 AND rounds_played IS NOT NULL AND match_id IN (${ph})`
+    )
+    .get(...matchIds) as { deaths: number; traded: number };
+  const totalDeaths = Number(untraded.deaths);
+  const tradedDeaths = Number(untraded.traded);
+  if (totalDeaths > 0) {
+    putValue(values, "MIS-007", totalDeaths - tradedDeaths, totalDeaths);
+    putValue(values, "MIS-018", Math.max(0, totalDeaths - tradedDeaths), totalDeaths);
   }
 }

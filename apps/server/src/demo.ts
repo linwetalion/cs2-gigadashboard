@@ -141,6 +141,18 @@ function unitValue(metric: Metric): number {
   return 5 + r * 95;
 }
 
+export function unavailableValue(metric: Metric, reason: string): MetricValue {
+  return {
+    metricId: metric.id,
+    value: null,
+    display: "N/A",
+    n: 0,
+    confidence: "none",
+    reason,
+    source: "unavailable",
+  };
+}
+
 export function demoValue(metric: Metric, scope: string): MetricValue {
   const gap = hash(metric.id + scope) % 23 === 0;
   if (gap) {

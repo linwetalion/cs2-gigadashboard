@@ -77,6 +77,18 @@ interface TickRow {
   health?: number;
   steamid?: string;
   team_num?: number;
+  yaw?: number;
+  pitch?: number;
+  velocity?: number[] | { x?: number; y?: number; z?: number };
+  is_walking?: boolean;
+  ducking?: boolean;
+  is_scoped?: boolean;
+  active_weapon?: string | { name?: string };
+  weapon_name?: string;
+  current_equip_value?: number;
+  balance?: number;
+  armor?: number;
+  has_helmet?: boolean;
   tick: number;
 }
 
@@ -249,7 +261,25 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   for (let tick = 64; tick <= maxTick; tick += 64) sampleTicks.push(tick);
   const tickRows = parseTicks(
     dem,
-    ["X", "Y", "Z", "health", "team_num"],
+    [
+      "X",
+      "Y",
+      "Z",
+      "health",
+      "team_num",
+      "yaw",
+      "pitch",
+      "velocity",
+      "is_walking",
+      "ducking",
+      "is_scoped",
+      "active_weapon",
+      "weapon_name",
+      "current_equip_value",
+      "balance",
+      "armor",
+      "has_helmet",
+    ],
     sampleTicks
   ) as TickRow[];
 
@@ -284,8 +314,9 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)
   `);
   const insertPosition = db.prepare(`
-    INSERT OR REPLACE INTO positions (match_id, round_no, tick, steamid, x, y, z, speed, health, team, zone)
-    VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL)
+    INSERT OR REPLACE INTO positions (match_id, round_no, tick, steamid, x, y, z, speed, health, team, zone,
+      yaw, pitch, walking, ducking, scoped, weapon, equip_value, cash, armor, helmet)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const updateMatch = db.prepare(`
     UPDATE matches SET map = ?, parsed_at = ?, demo_status = 'parsed',
@@ -448,6 +479,14 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
 
     for (const row of tickRows) {
       if (!row.steamid || row.X == null || row.Y == null) continue;
+      const velocity = Array.isArray(row.velocity)
+        ? Math.hypot(row.velocity[0] ?? 0, row.velocity[1] ?? 0)
+        : Math.hypot(row.velocity?.x ?? 0, row.velocity?.y ?? 0);
+      const weapon =
+        row.weapon_name ??
+        (typeof row.active_weapon === "string"
+          ? row.active_weapon
+          : (row.active_weapon?.name ?? null));
       insertPosition.run(
         matchId,
         roundAtTick(row.tick),
@@ -456,8 +495,19 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
         row.X,
         row.Y,
         row.Z ?? null,
+        velocity,
         row.health ?? null,
-        row.team_num === 2 ? "T" : "CT"
+        row.team_num === 2 ? "T" : "CT",
+        row.yaw ?? null,
+        row.pitch ?? null,
+        row.is_walking ? 1 : 0,
+        row.ducking ? 1 : 0,
+        row.is_scoped ? 1 : 0,
+        weapon,
+        row.current_equip_value ?? null,
+        row.balance ?? null,
+        row.armor ?? null,
+        row.has_helmet ? 1 : 0
       );
     }
 

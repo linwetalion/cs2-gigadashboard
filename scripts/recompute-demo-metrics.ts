@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { db } from "../apps/server/src/db.js";
 import { computeDemoMetrics, parsedMatchIds } from "../apps/server/src/demo-metrics.js";
+import { computePositionMetrics } from "../apps/server/src/position-metrics.js";
 
 /**
  * Recomputes round-level player aggregates (openings, trades, clutches,
@@ -31,6 +32,7 @@ for (const id of ids) {
     normalise.run(id, id);
   }
   const result = computeDemoMetrics(id);
+  computePositionMetrics(id);
   if (result) {
     ok += 1;
     if (ids.length <= 20) {

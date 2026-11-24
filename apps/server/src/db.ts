@@ -238,6 +238,45 @@ ensureColumn("matches", "demo_outcome", "TEXT");
 ensureColumn("matches", "demo_size", "INTEGER");
 ensureColumn("rounds", "plant_player", "TEXT");
 ensureColumn("rounds", "defuse_player", "TEXT");
+ensureColumn("positions", "yaw", "REAL");
+ensureColumn("positions", "pitch", "REAL");
+ensureColumn("positions", "walking", "INTEGER");
+ensureColumn("positions", "ducking", "INTEGER");
+ensureColumn("positions", "scoped", "INTEGER");
+ensureColumn("positions", "weapon", "TEXT");
+ensureColumn("positions", "equip_value", "INTEGER");
+ensureColumn("positions", "cash", "INTEGER");
+ensureColumn("positions", "armor", "INTEGER");
+ensureColumn("positions", "helmet", "INTEGER");
+
+// Per-player aggregates derived from sampled positions: movement, positioning,
+// aim placement and round-start economy. One row per player per match.
+db.exec(`
+CREATE TABLE IF NOT EXISTS match_player_extra (
+  match_id TEXT NOT NULL,
+  steamid TEXT NOT NULL,
+  samples INTEGER NOT NULL DEFAULT 0,
+  distance REAL NOT NULL DEFAULT 0,
+  moving_samples INTEGER NOT NULL DEFAULT 0,
+  walk_samples INTEGER NOT NULL DEFAULT 0,
+  duck_samples INTEGER NOT NULL DEFAULT 0,
+  zones INTEGER NOT NULL DEFAULT 0,
+  nearest_median REAL,
+  isolation_samples INTEGER NOT NULL DEFAULT 0,
+  crosshair_median REAL,
+  equip_median REAL,
+  cash_median REAL,
+  rounds_started INTEGER NOT NULL DEFAULT 0,
+  full_buys INTEGER NOT NULL DEFAULT 0,
+  eco_rounds INTEGER NOT NULL DEFAULT 0,
+  force_rounds INTEGER NOT NULL DEFAULT 0,
+  pistol_rounds INTEGER NOT NULL DEFAULT 0,
+  full_buy_wins INTEGER NOT NULL DEFAULT 0,
+  eco_wins INTEGER NOT NULL DEFAULT 0,
+  force_wins INTEGER NOT NULL DEFAULT 0,
+  pistol_wins INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (match_id, steamid)
+)`);
 ensureColumn("match_players", "kast", "REAL");
 ensureColumn("match_players", "leetify_rating", "REAL");
 ensureColumn("match_players", "aim", "REAL");

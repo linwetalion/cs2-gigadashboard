@@ -9,14 +9,20 @@ import { defaultFilters, filters as filterDefs } from "./filters.js";
 import {
   demoBreakdown,
   demoSeries,
-  demoValue,
   formatMetric,
   readMatches,
   readMetricValue,
+  unavailableValue,
 } from "./demo.js";
 import { metric, metrics, registryVersion } from "./registry.js";
 import { applyRealMetrics } from "./real-metrics.js";
-import { applyDemoMetrics, applyExtendedMetrics } from "./demo-metrics.js";
+import {
+  applyDemoMetrics,
+  applyExtendedMetrics,
+  applyHighlightMetrics,
+  applyPositionMetrics,
+  applySessionMetrics,
+} from "./demo-metrics.js";
 import { sections } from "./widgets.js";
 
 const PLAYER = {
@@ -35,11 +41,10 @@ function scopeFrom(filters: Record<string, string>): string {
 }
 
 function valueFor(metricDef: Metric, scope: string): MetricValue {
-  if (scope === "global") {
-    const stored = readMetricValue(metricDef.id);
-    if (stored) return stored;
-  }
-  return demoValue(metricDef, scope);
+  const stored = readMetricValue(metricDef.id);
+  if (stored) return stored;
+  // Nothing is invented: a metric without a real source is reported as N/A.
+  return unavailableValue(metricDef, "NO_SOURCE");
 }
 
 function normalizeForRadar(value: number | null): number {
@@ -49,9 +54,55 @@ function normalizeForRadar(value: number | null): number {
   return Math.max(0, Math.min(100, value));
 }
 
-function seriesFor(widgetId: string, kind: string, metricIds: string[], values: Record<string, MetricValue>): SeriesPoint[] {
-  const first = metric(metricIds[0]);
-  if (kind === "line") return demoSeries(first, 20);
+function matchSeries(metricIds: string[], matches: MatchSummary[]): SeriesPoint[] {
+  const id = metricIds[0];
+  const pick = (match: MatchSummary): number | null => {
+    switch (id) {
+      case "KIL-001":
+        return match.kills;
+      case "KIL-002":
+        return match.deaths;
+      case "KIL-003":
+        return match.assists;
+      case "KIL-004":
+        return match.deaths ? match.kills / match.deaths : null;
+      case "KIL-011":
+        return match.adr || null;
+      case "KIL-015":
+        return match.kills ? (match.hs / match.kills) * 100 : null;
+      case "KIL-009":
+        return match.kast && match.kast > 0 ? match.kast : null;
+      case "IMP-002":
+        return match.rating || null;
+      case "RES-003":
+        return match.scoreUs - match.scoreThem;
+      case "CTX-002":
+        return match.result === "win" ? 100 : match.result === "loss" ? 0 : 50;
+      default:
+        return null;
+    }
+  };
+
+  return [...matches]
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .slice(-20)
+    .map((match) => ({
+      label: new Date(match.startedAt).toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+      }),
+      value: pick(match),
+    }));
+}
+
+function seriesFor(
+  widgetId: string,
+  kind: string,
+  metricIds: string[],
+  values: Record<string, MetricValue>,
+  matches: MatchSummary[]
+): SeriesPoint[] {
+  if (kind === "line") return matchSeries(metricIds, matches);
   if (kind === "bar" || kind === "stacked") {
     if (metricIds.length > 1) {
       return metricIds.map((id) => ({
@@ -59,20 +110,13 @@ function seriesFor(widgetId: string, kind: string, metricIds: string[], values: 
         value: values[id]?.value ?? null,
       }));
     }
-    return demoBreakdown(first, 6);
+    return matchSeries(metricIds, matches);
   }
   if (kind === "radar") {
     return metricIds.map((id) => ({
       label: metric(id).name,
       value: normalizeForRadar(values[id]?.value ?? null),
     }));
-  }
-  if (kind === "scatter") {
-    return Array.from({ length: 18 }, (_, i) => {
-      const a = demoSeries(first, 18)[i];
-      const b = demoSeries(metric(metricIds[1]), 18)[i];
-      return { label: `E${i + 1}`, value: a?.value ?? null, secondary: b?.value ?? null };
-    });
   }
   return [];
 }
@@ -98,12 +142,15 @@ export function buildDashboard(rawFilters: Record<string, string | undefined>): 
   applyRealMetrics(values, realIds);
   applyDemoMetrics(values, realIds);
   applyExtendedMetrics(values, realIds);
+  applyPositionMetrics(values, realIds);
+  applyHighlightMetrics(values, realIds);
+  applySessionMetrics(values, matches);
 
   const series: Record<string, SeriesPoint[]> = {};
   for (const section of sections) {
     for (const widget of section.widgets) {
       for (const id of widget.metricIds) metric(id);
-      series[widget.id] = seriesFor(widget.id, widget.kind, widget.metricIds, values);
+      series[widget.id] = seriesFor(widget.id, widget.kind, widget.metricIds, values, matches);
     }
   }
 

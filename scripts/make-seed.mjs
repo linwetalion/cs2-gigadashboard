@@ -91,18 +91,40 @@ const players = seed
 const updatePlayer = seed.prepare(
   "UPDATE match_players SET steamid = ?, name = ? WHERE steamid = ?"
 );
+const hasExtra = seed
+  .prepare("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'match_player_extra'")
+  .get();
+if (hasExtra) {
+  seed.exec("CREATE TEMP TABLE alias(old_id TEXT PRIMARY KEY, new_id TEXT)");
+}
+const rememberAlias = hasExtra
+  ? seed.prepare("INSERT OR REPLACE INTO alias(old_id, new_id) VALUES (?, ?)")
+  : null;
 
 let index = 0;
 for (const row of players) {
   if (row.steamid === me) {
     updatePlayer.run("me", "you", row.steamid);
+    rememberAlias?.run(row.steamid, "me");
     continue;
   }
   const callsign = CALLSIGNS[index % CALLSIGNS.length];
   const cycle = Math.floor(index / CALLSIGNS.length);
   const name = cycle === 0 ? callsign : `${callsign} ${cycle + 1}`;
-  updatePlayer.run(`p${String(index + 1).padStart(4, "0")}`, name, row.steamid);
+  const alias = `p${String(index + 1).padStart(4, "0")}`;
+  updatePlayer.run(alias, name, row.steamid);
+  rememberAlias?.run(row.steamid, alias);
   index += 1;
+}
+
+if (hasExtra) {
+  seed
+    .prepare(
+      `UPDATE match_player_extra
+       SET steamid = (SELECT new_id FROM alias WHERE alias.old_id = match_player_extra.steamid)`
+    )
+    .run();
+  seed.exec("DROP TABLE alias");
 }
 
 // Event rows are kept as aggregates only.
