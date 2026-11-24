@@ -1,26 +1,65 @@
 import type { FilterDefinition } from "@giga/shared";
 
+/**
+ * CS2 Premier seasons. Valve never exposes a season id through the Game
+ * Coordinator, so boundaries are hardcoded from the official announcements:
+ *   S1 27.09.2023 – 28.01.2025
+ *   S2 28.01.2025 – 14.07.2025
+ *   S3 14.07.2025 – 21.01.2026
+ *   S4 21.01.2026 – 06.07.2026
+ *   S5 06.07.2026 – …
+ */
+export interface SeasonRange {
+  id: string;
+  label: string;
+  start: string;
+  end: string | null;
+}
+
+export const SEASONS: SeasonRange[] = [
+  { id: "1", label: "Season 1 · 2023–2025", start: "2023-09-27", end: "2025-01-28" },
+  { id: "2", label: "Season 2 · 2025 H1", start: "2025-01-28", end: "2025-07-14" },
+  { id: "3", label: "Season 3 · 2025 H2", start: "2025-07-14", end: "2026-01-21" },
+  { id: "4", label: "Season 4 · 2026 H1", start: "2026-01-21", end: "2026-07-06" },
+  { id: "5", label: "Season 5 · 2026 H2", start: "2026-07-06", end: null },
+];
+
+const ranges = SEASONS.map((season) => ({
+  id: season.id,
+  start: Date.parse(`${season.start}T00:00:00Z`),
+  end: season.end ? Date.parse(`${season.end}T00:00:00Z`) : Number.POSITIVE_INFINITY,
+}));
+
+/** Season id for a match timestamp, or null when it falls before Season 1. */
+export function seasonIdFor(startedAt: number): string | null {
+  for (const range of ranges) {
+    if (startedAt >= range.start && startedAt < range.end) return range.id;
+  }
+  return null;
+}
+
 export const filters: FilterDefinition[] = [
   {
-    id: "range",
-    label: "Период",
-    defaultValue: "all",
-    options: [
-      { value: "7d", label: "7 дней" },
-      { value: "30d", label: "30 дней" },
-      { value: "90d", label: "90 дней" },
-      { value: "season", label: "Сезон" },
-      { value: "all", label: "Всё время" },
-    ],
+    id: "dateFrom",
+    label: "От",
+    kind: "date",
+    defaultValue: "",
+    options: [],
+  },
+  {
+    id: "dateTo",
+    label: "До",
+    kind: "date",
+    defaultValue: "",
+    options: [],
   },
   {
     id: "season",
     label: "Сезон",
-    defaultValue: "3",
+    defaultValue: "all",
     options: [
-      { value: "3", label: "Season 3" },
-      { value: "2", label: "Season 2" },
-      { value: "1", label: "Season 1" },
+      { value: "all", label: "Все сезоны" },
+      ...SEASONS.map((season) => ({ value: season.id, label: season.label })),
     ],
   },
   {

@@ -14,6 +14,10 @@ export interface Metric {
   include?: string;
   exclude?: string;
   aggregation?: string;
+  /** Plain-language statement of what is counted, over what period and what the denominator is. */
+  scope?: string;
+  /** Concrete numeric example so the reader can sanity-check the number. */
+  example?: string;
   canon?: string;
   alias?: string;
   derived?: string;
@@ -100,6 +104,8 @@ export interface FilterDefinition {
   options: FilterOption[];
   multiple?: boolean;
   defaultValue: string;
+  /** `date` renders a ДД.ММ.ГГГГ input instead of a select. */
+  kind?: "select" | "date";
 }
 
 export interface MatchSummary {

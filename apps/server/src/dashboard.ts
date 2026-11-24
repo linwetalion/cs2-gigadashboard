@@ -15,6 +15,7 @@ import {
   unavailableValue,
 } from "./demo.js";
 import { metric, metrics, registryVersion } from "./registry.js";
+import { seasonIdFor } from "./filters.js";
 import { applyRealMetrics } from "./real-metrics.js";
 import {
   applyCompositeMetrics,
@@ -127,9 +128,12 @@ export function buildDashboard(rawFilters: Record<string, string | undefined>): 
   const filters = { ...defaultFilters() };
   for (const filter of filterDefs) {
     const value = rawFilters[filter.id];
-    if (value && filter.options.some((option) => option.value === value)) {
-      filters[filter.id] = value;
-    }
+    if (!value) continue;
+    const valid =
+      filter.kind === "date"
+        ? /^\d{4}-\d{2}-\d{2}$/.test(value)
+        : filter.options.some((option) => option.value === value);
+    if (valid) filters[filter.id] = value;
   }
 
   const scope = scopeFrom(filters);
@@ -269,23 +273,17 @@ function applyMatchAggregates(values: Record<string, MetricValue>, matches: Matc
 
 export function filteredMatches(filters: Record<string, string>): MatchSummary[] {
   const rows = readMatches(1000);
-  const now = Date.now();
-  const rangeMs =
-    filters.range === "7d"
-      ? 7 * 864e5
-      : filters.range === "30d"
-        ? 30 * 864e5
-        : filters.range === "90d"
-          ? 90 * 864e5
-          : Number.POSITIVE_INFINITY;
+  const from = filters.dateFrom ? Date.parse(`${filters.dateFrom}T00:00:00`) : null;
+  const to = filters.dateTo ? Date.parse(`${filters.dateTo}T23:59:59.999`) : null;
 
   return rows
     .filter((row) => {
       const startedAt = Number(row.started_at);
-      if (filters.range !== "all" && filters.range !== "season" && now - startedAt > rangeMs) {
+      if (from !== null && startedAt < from) return false;
+      if (to !== null && startedAt > to) return false;
+      if (filters.season && filters.season !== "all" && seasonIdFor(startedAt) !== filters.season) {
         return false;
       }
-      if (filters.season && String(row.season_id) !== filters.season) return false;
       if (filters.mode && row.mode !== filters.mode) return false;
       if (filters.map !== "all" && row.map !== filters.map) return false;
       if (filters.result !== "all" && row.result !== filters.result) return false;

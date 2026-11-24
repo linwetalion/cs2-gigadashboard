@@ -75,9 +75,12 @@ function normalizeFilters(raw: Record<string, string | undefined>): Record<strin
   const filters = { ...defaultFilters() };
   for (const filter of filterDefs) {
     const value = raw[filter.id];
-    if (value && filter.options.some((option) => option.value === value)) {
-      filters[filter.id] = value;
-    }
+    if (!value) continue;
+    const valid =
+      filter.kind === "date"
+        ? /^\d{4}-\d{2}-\d{2}$/.test(value)
+        : filter.options.some((option) => option.value === value);
+    if (valid) filters[filter.id] = value;
   }
   return filters;
 }
