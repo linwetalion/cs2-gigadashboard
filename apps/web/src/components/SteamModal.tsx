@@ -71,6 +71,10 @@ export function SteamModal({ open, onClose, onChanged }: Props) {
   const login = status?.login;
   const worker = status?.worker;
   const connected = login?.stage === "connected" || (status?.hasToken && worker?.loggedOn);
+  const steamId = worker?.steamId ?? login?.steamId ?? "";
+  const codesUrl = steamId
+    ? `https://steamcommunity.com/profiles/${steamId}/gcpd/730/?tab=authcodes`
+    : "https://steamcommunity.com/my/gcpd/730/?tab=authcodes";
 
   const run = async (action: () => Promise<SteamLoginState>) => {
     setBusy(true);
@@ -158,6 +162,18 @@ export function SteamModal({ open, onClose, onChanged }: Props) {
               <p className="muted small">
                 GC отдаёт только последние 8 матчей. Чтобы подтянуть историю за 1,5 года, нужен
                 Game Authentication Code + один старый share-код из Steam Support / gcpd.
+              </p>
+              <a
+                className="ghost small steam-code-link"
+                href={codesUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Открыть коды в Steam ↗
+              </a>
+              <p className="muted small">
+                На странице: вкладка «Authentication Codes» — Game Authentication Code, вкладка
+                «Your Matches» — share-коды матчей (правый клик по матчу → Copy share code).
               </p>
               {!status?.hasApiKey && (
                 <p className="warn small">
