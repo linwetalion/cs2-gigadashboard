@@ -29,10 +29,17 @@ const report = {
   realMatchIds: one(
     "SELECT COUNT(*) c FROM matches WHERE match_id LIKE 'leetify:%' OR match_id LIKE 'csgo_%'"
   ).c,
-  shotSteamids: one("SELECT COUNT(*) c FROM shots WHERE steamid IS NOT NULL").c,  damageSteamids: one(
-    "SELECT COUNT(*) c FROM damage WHERE attacker IS NOT NULL OR victim IS NOT NULL"
+  shotSteamids: one("SELECT COUNT(*) c FROM shots WHERE steamid GLOB '7656119*'").c,
+  damageSteamids: one(
+    "SELECT COUNT(*) c FROM damage WHERE attacker GLOB '7656119*' OR victim GLOB '7656119*'"
   ).c,
-  grenadeThrowers: one("SELECT COUNT(*) c FROM grenades WHERE thrower IS NOT NULL").c,
+  grenadeThrowers: one("SELECT COUNT(*) c FROM grenades WHERE thrower GLOB '7656119*'").c,
+  realKillIds: one(
+    "SELECT COUNT(*) c FROM kills WHERE killer GLOB '7656119*' OR victim GLOB '7656119*'"
+  ).c,
+  realRoundIds: one(
+    "SELECT COUNT(*) c FROM rounds WHERE plant_player GLOB '7656119*' OR defuse_player GLOB '7656119*'"
+  ).c,
   positions: one("SELECT COUNT(*) c FROM positions").c,
   kills: one("SELECT COUNT(*) c FROM kills").c,
   rounds: one("SELECT COUNT(*) c FROM rounds").c,
@@ -51,9 +58,11 @@ if (report.damageSteamids > 0) leaks.push(`${report.damageSteamids} damage steam
 if (report.grenadeThrowers > 0) leaks.push(`${report.grenadeThrowers} grenade throwers`);
 if (report.withShareCode > 0) leaks.push(`${report.withShareCode} share codes`);
 if (report.withDemoUrl > 0) leaks.push(`${report.withDemoUrl} demo urls`);
-if (report.positions + report.kills + report.rounds + report.economy > 0) {
-  leaks.push("round-level tables present");
+if (report.positions + report.economy > 0) {
+  leaks.push("heavy raw tables present");
 }
+if (report.realKillIds > 0) leaks.push(`${report.realKillIds} real ids in kills`);
+if (report.realRoundIds > 0) leaks.push(`${report.realRoundIds} real ids in rounds`);
 if (report.fullRosterMatches === 0) leaks.push("no full rosters — Teams tab will be empty");
 
 console.log(report);

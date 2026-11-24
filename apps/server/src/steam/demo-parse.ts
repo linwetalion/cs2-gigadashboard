@@ -9,6 +9,7 @@ import { db } from "../db.js";
 
 const demoDir = resolve(dataDir, "demos");
 const TICK_RATE = 64;
+const GRENADE = /Grenade|Flashbang|Molotov|Incendiary|Decoy/i;
 
 interface DemoPlayer {
   name: string;
@@ -79,7 +80,7 @@ interface TickRow {
   team_num?: number;
   yaw?: number;
   pitch?: number;
-  velocity?: number[] | { x?: number; y?: number; z?: number };
+  velocity?: number[] | { x?: number; y?: number; z?: number } | number;
   is_walking?: boolean;
   ducking?: boolean;
   is_scoped?: boolean;
@@ -126,6 +127,26 @@ async function decompress(input: string, output: string): Promise<void> {
 
 function roundOf(event: { total_rounds_played?: number }): number {
   return Math.max(1, (event.total_rounds_played ?? 0) + 1);
+}
+
+function velocityOf(row: {
+  velocity?: number[] | { x?: number; y?: number; z?: number } | number;
+}): { speed: number; vz: number } {
+  const value = row.velocity;
+  if (typeof value === "number") {
+    // The parser exposes the speed as a squared magnitude.
+    return { speed: Math.sqrt(Math.max(0, value)), vz: 0 };
+  }
+  if (Array.isArray(value)) {
+    return {
+      speed: Math.hypot(value[0] ?? 0, value[1] ?? 0),
+      vz: value[2] ?? 0,
+    };
+  }
+  return {
+    speed: Math.hypot(value?.x ?? 0, value?.y ?? 0),
+    vz: value?.z ?? 0,
+  };
 }
 
 export async function processDemo(matchId: string, url: string, mySteamId: string): Promise<DemoResult> {
@@ -259,6 +280,37 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   const maxTick = roundEnds[roundEnds.length - 1]!.tick;
   const sampleTicks: number[] = [];
   for (let tick = 64; tick <= maxTick; tick += 64) sampleTicks.push(tick);
+
+  // Second pass: exact state at every shot and every death. The 1 Hz stream is
+  // too coarse for aim/mistake metrics, so we ask the parser for those ticks
+  // specifically.
+  const eventTicks = [
+    ...new Set([
+      ...fires.map((fire) => fire.tick),
+      ...deaths.flatMap((death) => [death.tick, death.tick - 1]),
+      ...hurts.map((hurt) => hurt.tick),
+    ]),
+  ].sort((a, b) => a - b);
+  const eventProps = [
+    "velocity",
+    "ducking",
+    "is_walking",
+    "is_scoped",
+    "is_defusing",
+    "weapon_name",
+    "inventory",
+    "team_num",
+  ];
+  const eventRows = eventTicks.length
+    ? (parseTicks(dem, eventProps, eventTicks) as Array<
+        TickRow & { steamid?: string; is_defusing?: boolean; inventory?: string[] }
+      >)
+    : [];
+  const stateAt = new Map<string, TickRow & { is_defusing?: boolean; inventory?: string[] }>();
+  for (const row of eventRows) {
+    if (row.steamid) stateAt.set(`${row.steamid}:${row.tick}`, row);
+  }
+
   const tickRows = parseTicks(
     dem,
     [
@@ -283,8 +335,7 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
     sampleTicks
   ) as TickRow[];
 
-  const roundAtTick = (tick: number): number => {
-    let round = 1;
+  const roundAtTick = (tick: number): number => {    let round = 1;
     for (const end of roundEnds) {
       if (tick <= end.tick) return end.round;
       round = end.round + 1;
@@ -295,8 +346,9 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   const insertKill = db.prepare(`
     INSERT INTO kills (match_id, round_no, tick, killer, victim, assister, weapon,
       headshot, wallbang, noscope, airborne, flashed, trade, opening,
-      killer_x, killer_y, victim_x, victim_y)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL)
+      killer_x, killer_y, victim_x, victim_y,
+      victim_weapon, victim_defusing, victim_speed, victim_ducking, victim_grenades)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, NULL, NULL, NULL, ?, ?, ?, ?, ?)
   `);
   const insertDamage = db.prepare(`
     INSERT INTO damage (match_id, round_no, tick, attacker, victim, weapon, hitgroup, dmg, friendly)
@@ -304,8 +356,8 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
   `);
   const insertShot = db.prepare(`
     INSERT INTO shots (match_id, round_no, tick, steamid, weapon, hitgroup, distance, speed,
-      scoped, spotted_enemy, first_bullet, spray_index, hit, dmg)
-    VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 1, ?, ?, 0, 0)
+      scoped, spotted_enemy, first_bullet, spray_index, hit, dmg, ducking, airborne)
+    VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 1, ?, ?, 0, 0, ?, ?)
   `);
   const markShotHit = db.prepare("UPDATE shots SET hit = 1, dmg = ? WHERE id = ?");
   const insertGrenade = db.prepare(`
@@ -355,6 +407,10 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
       db.prepare(`DELETE FROM ${table} WHERE match_id = ?`).run(matchId);
     }
     for (const death of deaths) {
+      const victimState = death.user_steamid
+        ? (stateAt.get(`${death.user_steamid}:${death.tick - 1}`) ??
+          stateAt.get(`${death.user_steamid}:${death.tick}`))
+        : undefined;
       insertKill.run(
         matchId,
         roundOf(death),
@@ -367,7 +423,14 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
         death.penetrated ? 1 : 0,
         death.noscope ? 1 : 0,
         death.attackerinair ? 1 : 0,
-        death.attackerblind ? 1 : 0
+        death.attackerblind ? 1 : 0,
+        victimState?.weapon_name ?? null,
+        victimState?.is_defusing ? 1 : 0,
+        victimState ? velocityOf(victimState).speed : null,
+        victimState?.ducking ? 1 : 0,
+        Array.isArray(victimState?.inventory)
+          ? victimState.inventory.filter((item) => GRENADE.test(item)).length
+          : 0
       );
     }
 
@@ -411,14 +474,20 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
       const key = `${fire.user_steamid}:${round}`;
       const firstBullet = firstBulletRounds.has(key) ? 0 : 1;
       if (firstBullet) firstBulletRounds.add(key);
+      const state = stateAt.get(`${fire.user_steamid}:${fire.tick}`);
+      const motion = state ? velocityOf(state) : { speed: 0, vz: 0 };
       const info = insertShot.run(
         matchId,
         round,
         fire.tick,
         fire.user_steamid,
         weaponName,
+        motion.speed,
+        state?.is_scoped ? 1 : 0,
         firstBullet,
-        sprayIndex
+        sprayIndex,
+        state?.ducking ? 1 : 0,
+        motion.vz > 20 ? 1 : 0
       );
       const list = shotsByPlayer.get(fire.user_steamid) ?? [];
       list.push({ id: Number(info.lastInsertRowid), tick: fire.tick, hit: false });
@@ -479,9 +548,7 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
 
     for (const row of tickRows) {
       if (!row.steamid || row.X == null || row.Y == null) continue;
-      const velocity = Array.isArray(row.velocity)
-        ? Math.hypot(row.velocity[0] ?? 0, row.velocity[1] ?? 0)
-        : Math.hypot(row.velocity?.x ?? 0, row.velocity?.y ?? 0);
+      const velocity = velocityOf(row).speed;
       const weapon =
         row.weapon_name ??
         (typeof row.active_weapon === "string"

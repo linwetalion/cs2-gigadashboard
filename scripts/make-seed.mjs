@@ -37,10 +37,9 @@ seed.prepare("DELETE FROM matches WHERE is_demo = 1 OR status != 'published'").r
 seed.prepare("DELETE FROM metric_values").run();
 seed.prepare("DELETE FROM sync_state").run();
 
-// Tables the dashboard and Teams tab do not read.
+// Position samples are the only heavy table; aggregates live in
+// match_player_extra, so the raw stream can be dropped from the snapshot.
 seed.prepare("DELETE FROM positions").run();
-seed.prepare("DELETE FROM kills").run();
-seed.prepare("DELETE FROM rounds").run();
 seed.prepare("DELETE FROM economy").run();
 
 // Orphan rows from removed demo/unpublished matches.
@@ -61,7 +60,7 @@ seed.exec(`
   SELECT match_id, 'm' || printf('%04d', row_number() OVER (ORDER BY started_at))
   FROM matches
 `);
-for (const table of ["matches", "match_players", "shots", "damage", "grenades", "match_funnel"]) {
+for (const table of ["matches", "match_players", "shots", "damage", "grenades", "match_funnel", "match_player_extra", "kills", "rounds"]) {
   const exists = seed
     .prepare("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ?")
     .get(table);
@@ -91,46 +90,49 @@ const players = seed
 const updatePlayer = seed.prepare(
   "UPDATE match_players SET steamid = ?, name = ? WHERE steamid = ?"
 );
-const hasExtra = seed
-  .prepare("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'match_player_extra'")
-  .get();
-if (hasExtra) {
-  seed.exec("CREATE TEMP TABLE alias(old_id TEXT PRIMARY KEY, new_id TEXT)");
-}
-const rememberAlias = hasExtra
-  ? seed.prepare("INSERT OR REPLACE INTO alias(old_id, new_id) VALUES (?, ?)")
-  : null;
 
+const alias = new Map();
 let index = 0;
 for (const row of players) {
   if (row.steamid === me) {
     updatePlayer.run("me", "you", row.steamid);
-    rememberAlias?.run(row.steamid, "me");
+    alias.set(row.steamid, "me");
     continue;
   }
   const callsign = CALLSIGNS[index % CALLSIGNS.length];
   const cycle = Math.floor(index / CALLSIGNS.length);
   const name = cycle === 0 ? callsign : `${callsign} ${cycle + 1}`;
-  const alias = `p${String(index + 1).padStart(4, "0")}`;
-  updatePlayer.run(alias, name, row.steamid);
-  rememberAlias?.run(row.steamid, alias);
+  const newId = `p${String(index + 1).padStart(4, "0")}`;
+  updatePlayer.run(newId, name, row.steamid);
+  alias.set(row.steamid, newId);
   index += 1;
 }
 
-if (hasExtra) {
-  seed
-    .prepare(
-      `UPDATE match_player_extra
-       SET steamid = (SELECT new_id FROM alias WHERE alias.old_id = match_player_extra.steamid)`
-    )
-    .run();
-  seed.exec("DROP TABLE alias");
+// Pseudonymise every other table that carries player ids. Event rows keep the
+// same aliases, so per-player metrics stay computable on the public stand.
+const hasTable = (name) =>
+  Boolean(
+    seed.prepare("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ?").get(name)
+  );
+
+const rename = (table, column) => {
+  if (!hasTable(table)) return;
+  const stmt = seed.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`);
+  for (const [oldId, newId] of alias) stmt.run(newId, oldId);
+};
+
+for (const [table, columns] of [
+  ["match_player_extra", ["steamid"]],
+  ["shots", ["steamid"]],
+  ["damage", ["attacker", "victim"]],
+  ["grenades", ["thrower"]],
+  ["kills", ["killer", "victim", "assister"]],
+  ["rounds", ["plant_player", "defuse_player"]],
+]) {
+  for (const column of columns) rename(table, column);
 }
 
-// Event rows are kept as aggregates only.
-seed.prepare("UPDATE shots SET steamid = NULL").run();
-seed.prepare("UPDATE damage SET attacker = NULL, victim = NULL").run();
-seed.prepare("UPDATE grenades SET thrower = NULL").run();
+// Event rows keep their pseudonymous ids: shot-based metrics stay computable.
 
 // Match-level identifiers that are not needed for rendering.
 seed

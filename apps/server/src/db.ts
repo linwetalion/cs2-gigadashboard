@@ -248,6 +248,13 @@ ensureColumn("positions", "equip_value", "INTEGER");
 ensureColumn("positions", "cash", "INTEGER");
 ensureColumn("positions", "armor", "INTEGER");
 ensureColumn("positions", "helmet", "INTEGER");
+ensureColumn("shots", "ducking", "INTEGER");
+ensureColumn("shots", "airborne", "INTEGER");
+ensureColumn("kills", "victim_weapon", "TEXT");
+ensureColumn("kills", "victim_defusing", "INTEGER");
+ensureColumn("kills", "victim_speed", "REAL");
+ensureColumn("kills", "victim_ducking", "INTEGER");
+ensureColumn("kills", "victim_grenades", "INTEGER");
 
 // Per-player aggregates derived from sampled positions: movement, positioning,
 // aim placement and round-start economy. One row per player per match.

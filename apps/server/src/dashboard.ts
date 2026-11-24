@@ -17,11 +17,13 @@ import {
 import { metric, metrics, registryVersion } from "./registry.js";
 import { applyRealMetrics } from "./real-metrics.js";
 import {
+  applyCompositeMetrics,
   applyDemoMetrics,
   applyExtendedMetrics,
   applyHighlightMetrics,
   applyPositionMetrics,
   applySessionMetrics,
+  applyShotMetrics,
 } from "./demo-metrics.js";
 import { sections } from "./widgets.js";
 
@@ -144,6 +146,8 @@ export function buildDashboard(rawFilters: Record<string, string | undefined>): 
   applyExtendedMetrics(values, realIds);
   applyPositionMetrics(values, realIds);
   applyHighlightMetrics(values, realIds);
+  applyShotMetrics(values, realIds);
+  applyCompositeMetrics(values, realIds);
   applySessionMetrics(values, matches);
 
   const series: Record<string, SeriesPoint[]> = {};

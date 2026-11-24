@@ -802,8 +802,7 @@ export function applySessionMetrics(
   }
 }
 
-export function applyHighlightMetrics(
-  values: Record<string, MetricValue>,
+export function applyHighlightMetrics(  values: Record<string, MetricValue>,
   matchIds: string[]
 ): void {
   if (!matchIds.length) return;
@@ -872,4 +871,333 @@ export function applyHighlightMetrics(
     putValue(values, "MIS-007", totalDeaths - tradedDeaths, totalDeaths);
     putValue(values, "MIS-018", Math.max(0, totalDeaths - tradedDeaths), totalDeaths);
   }
+}
+
+const ZOOM_WEAPONS = /^(awp|ssg08|scar20|g3sg1|aug|sg556|sg553)/i;const GRENADE_NAMES = /Grenade|Flashbang|Molotov|Incendiary|Decoy/i;
+const MAX_SPEED = 250;
+
+/** Aim, weapon and mistake metrics from per-shot and per-death state. */
+export function applyShotMetrics(
+  values: Record<string, MetricValue>,
+  matchIds: string[]
+): void {
+  if (!matchIds.length) return;
+  const ph = matchIds.map(() => "?").join(",");
+
+  const shots = db
+    .prepare(
+      `SELECT s.match_id, s.round_no, s.tick, s.weapon, s.speed, s.scoped, s.ducking, s.airborne,
+              s.first_bullet, s.spray_index, s.hit
+       FROM shots s
+       JOIN match_players p ON p.match_id = s.match_id AND p.steamid = s.steamid
+       WHERE p.is_me = 1 AND s.match_id IN (${ph})
+       ORDER BY s.match_id, s.round_no, s.tick`
+    )
+    .all(...matchIds) as Array<{
+    match_id: string;
+    round_no: number;
+    tick: number;
+    weapon: string | null;
+    speed: number | null;
+    scoped: number | null;
+    ducking: number | null;
+    airborne: number | null;
+    first_bullet: number;
+    spray_index: number;
+    hit: number;
+  }>;
+
+  if (shots.length) {
+    const total = shots.length;
+    const stopped = shots.filter((shot) => Number(shot.speed ?? 0) < MAX_SPEED * 0.34).length;
+    const ducking = shots.filter((shot) => shot.ducking === 1).length;
+    const airborne = shots.filter((shot) => shot.airborne === 1).length;
+    const scoped = shots.filter((shot) => shot.scoped === 1).length;
+    const sniper = shots.filter((shot) => ZOOM_WEAPONS.test(String(shot.weapon ?? "")));
+    const sniperScoped = sniper.filter((shot) => shot.scoped === 1).length;
+    const speedSum = shots.reduce((sum, shot) => sum + Number(shot.speed ?? 0), 0);
+
+    putValue(values, "AIM-012", (stopped / total) * 100, total);
+    putValue(values, "AIM-013", (speedSum / total / MAX_SPEED) * 100, total);
+    putValue(values, "AIM-014", (ducking / total) * 100, total);
+    putValue(values, "AIM-015", (airborne / total) * 100, total);
+    if (sniper.length) putValue(values, "AIM-009", (sniperScoped / sniper.length) * 100, sniper.length);
+    void scoped;
+
+    // Spray length and rhythm.
+    const sprayLengths: number[] = [];
+    const gaps: number[] = [];
+    let maxSpray = 0;
+    let previous: { tick: number; spray: number; round: number } | null = null;
+    for (const shot of shots) {
+      maxSpray = Math.max(maxSpray, shot.spray_index);
+      if (previous && previous.round === shot.round_no && shot.spray_index > 1) {
+        gaps.push(((shot.tick - previous.tick) / 64) * 1000);
+      }
+      previous = { tick: shot.tick, spray: shot.spray_index, round: shot.round_no };
+    }
+    if (maxSpray) putValue(values, "AIM-016", maxSpray, total);
+    const gap = medianOf(gaps);
+    if (gap !== null) putValue(values, "AIM-017", gap, gaps.length);
+
+    const afterFirst = shots.filter((shot) => shot.spray_index >= 2);
+    if (afterFirst.length) {
+      const hits = afterFirst.filter((shot) => shot.hit === 1).length;
+      putValue(values, "AIM-028", (hits / afterFirst.length) * 100, afterFirst.length);
+    }
+    void sprayLengths;
+
+    const sprays3 = new Set<string>();
+    for (const shot of shots) {
+      if (shot.spray_index >= 3) sprays3.add(`${shot.match_id}:${shot.round_no}`);
+    }
+    if (sprays3.size) putValue(values, "WPN-024", sprays3.size, total);
+  }
+
+  const damage = db
+    .prepare(
+      `SELECT COUNT(*) AS hits,
+              SUM(CASE WHEN d.hitgroup = 'head' THEN 1 ELSE 0 END) AS heads
+       FROM damage d
+       JOIN match_players p ON p.match_id = d.match_id AND p.steamid = d.attacker
+       WHERE p.is_me = 1 AND d.match_id IN (${ph})`
+    )
+    .get(...matchIds) as { hits: number; heads: number | null };
+  if (Number(damage.hits) > 0) {
+    putValue(values, "WPN-023", (Number(damage.heads ?? 0) / Number(damage.hits)) * 100, Number(damage.hits));
+  }
+
+  const kills = db
+    .prepare(
+      `SELECT COUNT(*) AS kills FROM kills k
+       JOIN match_players p ON p.match_id = k.match_id AND p.steamid = k.killer
+       WHERE p.is_me = 1 AND k.match_id IN (${ph}) AND k.killer != k.victim`
+    )
+    .get(...matchIds) as { kills: number };
+  if (shots.length && Number(kills.kills) > 0) {
+    putValue(values, "WPN-022", (Number(kills.kills) / shots.length) * 100, shots.length);
+  }
+
+  const deaths = db
+    .prepare(
+      `SELECT k.victim_weapon, k.victim_defusing, k.victim_grenades, k.weapon, k.killer, k.victim
+       FROM kills k
+       JOIN match_players p ON p.match_id = k.match_id AND p.steamid = k.victim
+       WHERE p.is_me = 1 AND k.match_id IN (${ph})`
+    )
+    .all(...matchIds) as Array<{
+    victim_weapon: string | null;
+    victim_defusing: number | null;
+    victim_grenades: number | null;
+    weapon: string | null;
+    killer: string | null;
+    victim: string | null;
+  }>;
+
+  if (deaths.length) {
+    const grenadeInHand = deaths.filter((death) => GRENADE_NAMES.test(String(death.victim_weapon ?? ""))).length;
+    const manyGrenades = deaths.filter((death) => Number(death.victim_grenades ?? 0) >= 2).length;
+    const defusing = deaths.filter((death) => death.victim_defusing === 1).length;
+    const suicide = deaths.filter((death) => death.killer && death.killer === death.victim).length;
+    const world = deaths.filter((death) => String(death.weapon ?? "") === "world").length;
+
+    if (grenadeInHand) putValue(values, "MIS-003", grenadeInHand, deaths.length);
+    if (manyGrenades) putValue(values, "MIS-020", manyGrenades, deaths.length);
+    if (defusing) putValue(values, "MIS-015", defusing, deaths.length);
+    if (suicide) putValue(values, "MIS-024", suicide, deaths.length);
+    if (world) putValue(values, "MIS-004", world, deaths.length);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Composite ratings (population = players in the parsed demos)        */
+/* ------------------------------------------------------------------ */
+
+interface CompositeRow {
+  steamid: string;
+  isMe: boolean;
+  rounds: number;
+  shots: number;
+  hits: number;
+  headHits: number;
+  stopped: number;
+  sprayShots: number;
+  sprayHits: number;
+  flashes: number;
+  smokes: number;
+  heDamage: number;
+  fireDamage: number;
+  survived: number;
+  tradeKills: number;
+  isolation: number;
+  samples: number;
+}
+
+function zScores(values: number[]): number[] {
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) * (value - mean), 0) / values.length;
+  const sd = Math.sqrt(variance) || 1;
+  return values.map((value) => (value - mean) / sd);
+}
+
+/**
+ * IMP-011/012/013 use z-scores against a population. The population here is
+ * every player who appears in the parsed demos, which is the only honest
+ * reference we have without a third-party ladder.
+ */
+export function applyCompositeMetrics(
+  values: Record<string, MetricValue>,
+  matchIds: string[]
+): void {
+  if (!matchIds.length) return;
+  const ph = matchIds.map(() => "?").join(",");
+
+  const players = db
+    .prepare(
+      `SELECT p.steamid, p.is_me AS isMe, p.rounds_played AS rounds,
+              COALESCE(p.rounds_survived, 0) AS survived, COALESCE(p.trade_kills, 0) AS tradeKills
+       FROM match_players p
+       WHERE p.match_id IN (${ph}) AND p.rounds_played IS NOT NULL`
+    )
+    .all(...matchIds) as Array<{
+    steamid: string;
+    isMe: number;
+    rounds: number;
+    survived: number;
+    tradeKills: number;
+  }>;
+  if (!players.length) return;
+
+  const shots = db
+    .prepare(
+      `SELECT steamid,
+              COUNT(*) AS shots,
+              SUM(hit) AS hits,
+              SUM(CASE WHEN speed < 85 THEN 1 ELSE 0 END) AS stopped,
+              SUM(CASE WHEN spray_index >= 2 THEN 1 ELSE 0 END) AS sprayShots,
+              SUM(CASE WHEN spray_index >= 2 AND hit = 1 THEN 1 ELSE 0 END) AS sprayHits
+       FROM shots WHERE match_id IN (${ph}) GROUP BY steamid`
+    )
+    .all(...matchIds) as Array<{
+    steamid: string;
+    shots: number;
+    hits: number | null;
+    stopped: number | null;
+    sprayShots: number | null;
+    sprayHits: number | null;
+  }>;
+
+  const heads = db
+    .prepare(
+      `SELECT attacker AS steamid,
+              SUM(CASE WHEN hitgroup = 'head' THEN 1 ELSE 0 END) AS headHits
+       FROM damage WHERE match_id IN (${ph}) AND attacker IS NOT NULL GROUP BY attacker`
+    )
+    .all(...matchIds) as Array<{ steamid: string; headHits: number | null }>;
+
+  const utility = db
+    .prepare(
+      `SELECT thrower AS steamid,
+              SUM(CASE WHEN type = 'flash' THEN 1 ELSE 0 END) AS flashes,
+              SUM(CASE WHEN type = 'smoke' THEN 1 ELSE 0 END) AS smokes
+       FROM grenades WHERE match_id IN (${ph}) AND thrower IS NOT NULL GROUP BY thrower`
+    )
+    .all(...matchIds) as Array<{ steamid: string; flashes: number | null; smokes: number | null }>;
+
+  const heDamage = db
+    .prepare(
+      `SELECT attacker AS steamid,
+              SUM(CASE WHEN weapon LIKE '%hegrenade%' THEN dmg ELSE 0 END) AS he,
+              SUM(CASE WHEN weapon LIKE '%molotov%' OR weapon LIKE '%incendiary%' OR weapon LIKE '%inferno%' THEN dmg ELSE 0 END) AS fire
+       FROM damage WHERE match_id IN (${ph}) AND attacker IS NOT NULL GROUP BY attacker`
+    )
+    .all(...matchIds) as Array<{ steamid: string; he: number | null; fire: number | null }>;
+
+  const extra = db
+    .prepare(
+      `SELECT steamid, SUM(samples) AS samples, SUM(isolation_samples) AS isolationSamples
+       FROM match_player_extra WHERE match_id IN (${ph}) GROUP BY steamid`
+    )
+    .all(...matchIds) as Array<{ steamid: string; samples: number; isolationSamples: number }>;
+
+  const shotMap = new Map(shots.map((row) => [row.steamid, row]));
+  const headMap = new Map(heads.map((row) => [row.steamid, Number(row.headHits ?? 0)]));
+  const utilityMap = new Map(utility.map((row) => [row.steamid, row]));
+  const damageMap = new Map(heDamage.map((row) => [row.steamid, row]));
+  const extraMap = new Map(extra.map((row) => [row.steamid, row]));
+
+  const rows: CompositeRow[] = [];
+  for (const player of players) {
+    const shot = shotMap.get(player.steamid);
+    if (!shot || shot.shots < 150 || player.rounds < 10) continue;
+    const extraRow = extraMap.get(player.steamid);
+    rows.push({
+      steamid: player.steamid,
+      isMe: player.isMe === 1,
+      rounds: player.rounds,
+      shots: shot.shots,
+      hits: Number(shot.hits ?? 0),
+      headHits: headMap.get(player.steamid) ?? 0,
+      stopped: Number(shot.stopped ?? 0),
+      sprayShots: Number(shot.sprayShots ?? 0),
+      sprayHits: Number(shot.sprayHits ?? 0),
+      flashes: Number(utilityMap.get(player.steamid)?.flashes ?? 0),
+      smokes: Number(utilityMap.get(player.steamid)?.smokes ?? 0),
+      heDamage: Number(damageMap.get(player.steamid)?.he ?? 0),
+      fireDamage: Number(damageMap.get(player.steamid)?.fire ?? 0),
+      survived: player.survived,
+      tradeKills: player.tradeKills,
+      isolation: extraRow ? extraRow.isolationSamples / Math.max(1, extraRow.samples) : 0,
+      samples: extraRow?.samples ?? 0,
+    });
+  }
+
+  const me = rows.find((row) => row.isMe);
+  if (!me || rows.length < 5) return;
+
+  const perRound = (value: number, row: CompositeRow) => value / Math.max(1, row.rounds);
+  const share = (part: number, whole: number) => (whole ? (part / whole) * 100 : 0);
+
+  const aimComponents = [
+    zScores(rows.map((row) => share(row.hits, row.shots))),
+    zScores(rows.map((row) => share(row.headHits, Math.max(1, row.hits)))),
+    zScores(rows.map((row) => share(row.stopped, row.shots))),
+    zScores(rows.map((row) => share(row.sprayHits, Math.max(1, row.sprayShots)))),
+  ];
+  const aimIndex = rows.findIndex((row) => row.isMe);
+  putValue(
+    values,
+    "IMP-011",
+    50 + 10 * (aimComponents.reduce((sum, list) => sum + list[aimIndex]!, 0) / aimComponents.length),
+    rows.length
+  );
+
+  const utilityComponents = [
+    zScores(rows.map((row) => perRound(row.flashes, row))),
+    zScores(rows.map((row) => perRound(row.smokes, row))),
+    zScores(rows.map((row) => perRound(row.heDamage, row))),
+    zScores(rows.map((row) => perRound(row.fireDamage, row))),
+  ];
+  putValue(
+    values,
+    "IMP-012",
+    50 + 10 * (utilityComponents.reduce((sum, list) => sum + list[aimIndex]!, 0) / utilityComponents.length),
+    rows.length
+  );
+
+  const positionComponents = [
+    zScores(rows.map((row) => share(row.survived, row.rounds))),
+    zScores(rows.map((row) => perRound(row.tradeKills, row))),
+    zScores(rows.map((row) => -row.isolation)),
+  ];
+  putValue(
+    values,
+    "IMP-013",
+    50 +
+      10 *
+        (positionComponents.reduce((sum, list) => sum + list[aimIndex]!, 0) /
+          positionComponents.length),
+    rows.length
+  );
 }
