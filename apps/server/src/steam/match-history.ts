@@ -1,5 +1,4 @@
 import { db } from "../db.js";
-import { computeDemoMetrics } from "../demo-metrics.js";
 import { processDemo } from "./demo-parse.js";
 import { importSteamReplays, type SteamReplayItem } from "./replay-import.js";
 import { storedSession } from "./login.js";
@@ -133,7 +132,6 @@ export async function runAutoIngestOnce(pages = 2): Promise<AutoIngestStatus> {
     for (const row of pendingMatches()) {
       try {
         const parsed = await processDemo(row.match_id, row.demo_url, session.steamId);
-        computeDemoMetrics(row.match_id);
         db.prepare(
           "UPDATE matches SET demo_status = 'parsed', source = 'steam' WHERE match_id = ?"
         ).run(row.match_id);
@@ -144,8 +142,21 @@ export async function runAutoIngestOnce(pages = 2): Promise<AutoIngestStatus> {
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (/404|not found/i.test(message)) {
-          db.prepare("UPDATE matches SET demo_status = 'expired' WHERE match_id = ?").run(row.match_id);
+        const attempts = (
+          db
+            .prepare("SELECT COALESCE(demo_attempts, 0) + 1 AS next FROM matches WHERE match_id = ?")
+            .get(row.match_id) as { next: number } | undefined
+        )?.next ?? 1;
+        db.prepare("UPDATE matches SET demo_attempts = ? WHERE match_id = ?").run(
+          attempts,
+          row.match_id
+        );
+        // A fresh match may need a few minutes before Valve publishes the
+        // replay, so "not found" is only fatal after several attempts.
+        if (/404|not found/i.test(message) && attempts >= 6) {
+          db.prepare("UPDATE matches SET demo_status = 'expired' WHERE match_id = ?").run(
+            row.match_id
+          );
         }
         autoIngestStatus.lastError = `${row.match_id}: ${message}`;
       }
@@ -171,6 +182,20 @@ export async function runAutoIngestOnce(pages = 2): Promise<AutoIngestStatus> {
 }
 
 let timer: NodeJS.Timeout | null = null;
+let pendingSync: NodeJS.Timeout | null = null;
+
+/**
+ * Requests an immediate sync, coalescing bursts (a GC match list and the web
+ * history usually arrive within seconds of each other).
+ */
+export function requestSync(delayMs = 5000): void {
+  if (pendingSync) return;
+  pendingSync = setTimeout(() => {
+    pendingSync = null;
+    void runAutoIngestOnce();
+  }, delayMs);
+  pendingSync.unref?.();
+}
 
 export function startAutoIngest(intervalMinutes: number): void {
   autoIngestStatus.enabled = true;

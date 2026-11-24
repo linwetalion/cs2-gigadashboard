@@ -6,6 +6,8 @@ import unbzip2 from "unbzip2-stream";
 import { parseEvent, parseGrenades, parseHeader, parsePlayerInfo, parseTicks } from "@laihoe/demoparser2";
 import { dataDir } from "../config.js";
 import { db } from "../db.js";
+import { computeDemoMetrics } from "../demo-metrics.js";
+import { computePositionMetrics } from "../position-metrics.js";
 
 const demoDir = resolve(dataDir, "demos");
 const TICK_RATE = 64;
@@ -626,6 +628,11 @@ export async function processDemo(matchId: string, url: string, mySteamId: strin
     updateMatch.run(map, Date.now(), Math.round(durationSec / 60), matchId);
   });
   tx();
+
+  // Every parse ends with the full aggregate pass, so any entry point (CLI,
+  // auto-ingest, manual) leaves the database complete for the dashboard.
+  computeDemoMetrics(matchId);
+  computePositionMetrics(matchId);
 
   rmSync(dem, { force: true });
   // The compressed demo is kept on disk: replays expire on Valve's side after

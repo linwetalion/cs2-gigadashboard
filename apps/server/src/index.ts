@@ -26,6 +26,7 @@ import { buildTeams, buildTeamDetail, buildTeamCompare } from "./teams.js";
 import { importSteamReplays, type SteamReplayItem } from "./steam/replay-import.js";
 import {
   autoIngestStatus,
+  requestSync,
   runAutoIngestOnce,
   startAutoIngest,
 } from "./steam/match-history.js";
@@ -90,7 +91,17 @@ if (restored && process.env.STEAM_AUTOSTART !== "0") {
 }
 
 if (process.env.AUTO_INGEST !== "0" && (restored || (STEAM_SYNC && STEAM_REFRESH_TOKEN))) {
-  startAutoIngest(Number(process.env.AUTO_INGEST_MINUTES ?? 20));
+  startAutoIngest(Number(process.env.AUTO_INGEST_MINUTES ?? 5));
+
+  // The GC pushes a fresh match list right after a game. Watching the worker
+  // timestamp gives us an instant trigger without coupling the two modules.
+  let lastMatchAt = "";
+  setInterval(() => {
+    if (workerStatus.lastMatchAt && workerStatus.lastMatchAt !== lastMatchAt) {
+      lastMatchAt = workerStatus.lastMatchAt;
+      requestSync(3000);
+    }
+  }, 30_000).unref();
 }
 
 const matchCount = (

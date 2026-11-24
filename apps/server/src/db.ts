@@ -236,6 +236,7 @@ ensureColumn("matches", "demo_status", "TEXT");
 ensureColumn("matches", "demo_cluster", "INTEGER");
 ensureColumn("matches", "demo_outcome", "TEXT");
 ensureColumn("matches", "demo_size", "INTEGER");
+ensureColumn("matches", "demo_attempts", "INTEGER");
 ensureColumn("rounds", "plant_player", "TEXT");
 ensureColumn("rounds", "defuse_player", "TEXT");
 ensureColumn("positions", "yaw", "REAL");
