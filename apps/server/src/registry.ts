@@ -70,3 +70,6 @@ export function metric(id: string): Metric {
   if (!found) throw new Error(`Unknown metric: ${id}`);
   return found;
 }
+// metrics.yaml is read at startup; touch this file to reload after a sync.
+// touch
+// touch

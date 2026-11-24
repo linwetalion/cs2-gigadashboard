@@ -101,6 +101,8 @@ for (const block of blocks) {
   const include = body.match(/\*\*Включено:\*\*\s*([^\n]+)/)?.[1]?.trim();
   const exclude = body.match(/\*\*Исключено:\*\*\s*([^\n]+)/)?.[1]?.trim();
   const aggregation = body.match(/\*\*Агрегация:\*\*\s*([^\n]+)/)?.[1]?.trim();
+  const scope = body.match(/\*\*Что считается:\*\*\s*([\s\S]*?)(?=\n- \*\*|\n\n|$)/)?.[1]?.trim();
+  const example = body.match(/\*\*Пример:\*\*\s*([\s\S]*?)(?=\n- \*\*|\n\n|$)/)?.[1]?.trim();
   const canon = body.match(/\*\*Канон:\*\*\s*([^\n]+)/)?.[1]?.trim();
   const alias = body.match(/\*\*Алиас:\*\*\s*([^\n]+)/)?.[1]?.trim();
   const derived = body.match(/\*\*Производная:\*\*\s*([^\n]+)/)?.[1]?.trim();
@@ -124,6 +126,8 @@ for (const block of blocks) {
     include,
     exclude,
     aggregation,
+    scope,
+    example,
     canon,
     alias,
     derived,
@@ -151,7 +155,7 @@ for (const m of metrics) {
   lines.push(`    minSample: ${m.minSample}`);
   lines.push(`    formula: ${q(m.formula)}`);
   lines.push(`    tooltip: ${q(m.tooltip)}`);
-  for (const key of ["include", "exclude", "aggregation", "canon", "alias", "derived"]) {
+  for (const key of ["include", "exclude", "aggregation", "scope", "example", "canon", "alias", "derived"]) {
     if (m[key]) lines.push(`    ${key}: ${q(m[key])}`);
   }
   lines.push(`    sources: [${m.sources.map(q).join(", ")}]`);

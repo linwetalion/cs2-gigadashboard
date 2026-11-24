@@ -1,20 +1,22 @@
 # AUTO-GENERATED from docs/TZ-gigadashboard.md by scripts/parse-metrics.mjs
 # Do not edit by hand. Edit the spec, then run: npm run metrics:sync
 version: 1
-generatedAt: "2026-11-22T01:30:55.250Z"
+generatedAt: "2026-11-24T10:49:41.035Z"
 count: 538
 metrics:
   - id: "CTX-001"
-    name: "Матчи"
+    name: "Количество матчей в выбранном срезе"
     domain: "Контекст"
     unit: "шт."
     direction: "neutral"
     minSample: 1
     formula: "`N(matches)`"
-    tooltip: "Сколько матчей попало в текущий фильтр. Нажмите, чтобы открыть список."
+    tooltip: "Сколько матчей попало в текущий срез. Все остальные проценты считаются внутри этих матчей."
     include: "все завершённые матчи в фильтре."
     exclude: "warmup, отменённые, технические поражения без демки."
     aggregation: "`Σ`"
+    scope: "Все матчи, попавшие под фильтры: даты «от/до», сезон, режим, карта, результат. Знаменатель для всех процентных метрик — именно это число."
+    example: "Фильтр «всё время» → 8 матчей. Если выбрать только Dust2 — останутся матчи, где карта Dust2."
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "CTX-002"
@@ -231,47 +233,55 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "KIL-001"
-    name: "Убийства"
+    name: "Убийства: сколько противников ты убил за период"
     domain: "Объём боя"
     unit: "шт."
     direction: "up"
     minSample: 1
     formula: "`Σ kills`"
-    tooltip: "Все убийства врагов. Тимкиллы и суициды не входят. Для темпа используется KPR, для вклада — ADR."
+    tooltip: "Сумма убийств за выбранный период."
     include: "убийства врагов, включая нож, зевс, гранаты."
     exclude: "тимкиллы, самоубийства."
     aggregation: "`Σ`"
+    scope: "Все убийства, где ты — атакующий. Тимкиллы сюда не входят."
+    example: "8 матчей → 121 убийство."
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-002"
-    name: "Смерти"
+    name: "Смерти: сколько раз тебя убили за период"
     domain: "Объём боя"
     unit: "шт."
     direction: "down"
     minSample: 1
     formula: "`Σ deaths`"
-    tooltip: "Все смерти. Смерть от тимкилла учитывается; смерть от мира — отдельно."
+    tooltip: "Сумма смертей за выбранный период."
+    scope: "Все смерти, включая смерть от гранаты, огня, падения и тимкилла."
+    example: "8 матчей → 128 смертей."
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-003"
-    name: "Ассисты"
+    name: "Ассисты: помощь в убийствах за период"
     domain: "Объём боя"
     unit: "шт."
     direction: "up"
     minSample: 1
     formula: "`Σ assists`"
-    tooltip: "Ассисты по правилам игры (урон ≥ 40 без добивания). В метриках вклада заменяются damage assists."
+    tooltip: "Сумма ассистов за период."
+    scope: "Ассист засчитывается, если ты нанёс урон или флешнул жертву перед её смертью."
+    example: "8 матчей → 41 ассист."
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-004"
-    name: "K/D"
+    name: "K/D — отношение убийств к смертям"
     domain: "Объём боя"
     unit: "коэффициент"
     direction: "up"
     minSample: 30
     formula: "`KD = K / max(D, 1)`"
-    tooltip: "Отношение убийств к смертям. Не учитывает контекст раунда, поэтому показывается рядом с рейтингом и KAST."
+    tooltip: "Сколько убийств приходится на одну смерть."
     aggregation: "`ΣK / ΣD`"
+    scope: "Убийства делятся на смерти за тот же период. Если смертей 0, показывается число убийств."
+    example: "121 / 128 → 0.95."
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-005"
@@ -315,15 +325,17 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-009"
-    name: "KAST"
+    name: "KAST — доля раундов с убийством, ассистом, выживанием или обменом"
     domain: "Объём боя"
     unit: "%"
     direction: "up"
     minSample: 30
     formula: "`KAST = N(раунды с K ∨ A ∨ S ∨ T) / ΣR × 100`"
-    tooltip: "Доля раундов, где вы сделали хотя бы одно из: убили, ассистировали, выжили, были обменены. Меряет стабильность участия, а не величину вклада."
+    tooltip: "Как часто ты приносишь пользу в раунде: фраг, ассист, выживание или обмен."
     include: "раунд с убийством, ассистом, выживанием или обменом смерти."
     exclude: "раунды, где было несколько событий — считаются один раз."
+    scope: "Раунд успешен, если выполнено хотя бы одно: убийство, ассист, выживание или смерть, обменянная союзником в течение 4 с (256 тиков)."
+    example: "160 раундов, 124 успешных → 77.5%."
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-010"
@@ -338,14 +350,16 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-011"
-    name: "ADR"
+    name: "ADR — средний урон за раунд"
     domain: "Объём боя"
     unit: "HP/раунд"
     direction: "up"
     minSample: 30
     formula: "`ADR = ΣDMG / ΣR`"
-    tooltip: "Средний урон за раунд. Главный показатель давления. 60–75 — средний уровень, 90+ — сильный."
+    tooltip: "Сколько урона ты наносишь противникам за один раунд."
     include: "урон от пуль, гранат, огня, ножа."
+    scope: "Весь урон по живым противникам делится на число раундов. Урон по союзникам и себе не входит. Каждый раунд — один знаменатель."
+    example: "160 раундов, 12 800 урона → ADR 80.0."
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-012"
@@ -379,13 +393,15 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-015"
-    name: "Доля убийств в голову"
+    name: "HS% — доля убийств в голову"
     domain: "Объём боя"
     unit: "%"
     direction: "up"
     minSample: 30
     formula: "`HSK = headshot_kills / kills × 100`"
-    tooltip: "Какая доля убийств завершена в голову. Зависит от оружия: у AWP и дробовиков ниже."
+    tooltip: "Какая часть убийств сделана в голову."
+    scope: "Знаменатель — все твои убийства за период. Хедшот — попадание в hitgroup head, в том числе через стену."
+    example: "121 убийство, 47 в голову → 38.8%."
     sources: ["Leetify", "Scope", "CSStats", "Tracker", "SteamAnalyst"]
     version: 1
   - id: "KIL-016"
@@ -520,59 +536,69 @@ metrics:
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-003"
-    name: "Точность (все выстрелы)"
+    name: "Точность стрельбы: доля выстрелов, попавших в игрока"
     domain: "Точность"
     unit: "%"
     direction: "up"
     minSample: 100
     formula: "`ACC = hits / shots × 100`"
-    tooltip: "Доля выстрелов, попавших в кого-либо. Включает прострелы и добивания. Не равна точности по увиденному врагу."
+    tooltip: "Какая часть твоих выстрелов задела противника. Все выстрелы периода, включая промахи и стрельбу в воздух."
     exclude: "выстрелы в дым/стену без видимости цели."
+    scope: "Считаются все выстрелы за период: в стены, в дым, в воздух и по союзникам тоже. Знаменатель — каждый выстрел, а не каждая перестрелка."
+    example: "21 234 выстрела, 4 247 попали → 20.0%. Если стрелять в воздух, знаменатель растёт и процент падает."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-004"
-    name: "Точность по увиденному врагу (spotted accuracy)"
+    name: "Точность по замеченному противнику (spotted accuracy)"
     domain: "Точность"
     unit: "%"
     direction: "up"
     minSample: 50
     formula: "`ACC_SPT = hits_spotted / shots_spotted × 100`"
-    tooltip: "Доля попаданий при реально видимой цели. Самая честная метрика аима: отсекает шум и слепую стрельбу."
+    tooltip: "Точность только по выстрелам, когда враг был в поле зрения."
     include: "выстрелы, когда цель была видима по §4.2."
     exclude: "стрельба по памяти, в дым, префайр без видимости."
+    scope: "Знаменатель — только выстрелы, сделанные в момент, когда противник был виден (spotted). Выстрелы «наугад» и в дым не входят."
+    example: "1 800 выстрелов по видимому врагу, 900 попали → 50.0%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-005"
-    name: "Точность первого выстрела"
+    name: "Точность первого выстрела серии (first bullet)"
     domain: "Точность"
     unit: "%"
     direction: "up"
     minSample: 40
     formula: "`ACC_FB = hits_first / shots_first × 100`"
-    tooltip: "Попадает ли первый выстрел. Прямо отражает crosshair placement и дисциплину стопа."
+    tooltip: "Как часто первый выстрел серии попадает в цель."
     include: "только первый выстрел каждого энгейджмента."
+    scope: "Знаменатель — первый выстрел каждой серии (после паузы больше 8 тиков). Последующие выстрелы отдачи не входят."
+    example: "1 000 серий, 320 первых выстрелов попали → 32.0%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-006"
-    name: "Точность спрея"
+    name: "Точность в зажиме: попадания с 3-го выстрела серии"
     domain: "Точность"
     unit: "%"
     direction: "up"
     minSample: 60
     formula: "`ACC_SPR = hits_spray / shots_spray × 100`, спрей = ≥ 3 выстрелов подряд"
-    tooltip: "Доля попаданий в серии из 3+ выстрелов. Показывает контроль отдачи, а не первый выстрел."
+    tooltip: "Насколько хорошо ты контролируешь отдачу на длинных сериях."
     include: "винтовки, только по увиденному врагу."
+    scope: "Знаменатель — выстрелы серии начиная с третьего. Первый и второй не входят."
+    example: "2 000 выстрелов в зажиме, 500 попали → 25.0%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-007"
-    name: "Контроль отдачи"
+    name: "Точность на длинной серии (с 4-го выстрела)"
     domain: "Точность"
     unit: "%"
     direction: "up"
     minSample: 60
     formula: "`ACC_RCL = hits_after4 / shots_after4 × 100`"
-    tooltip: "Попадания на четвёртом и дальнейших выстрелах серии. Отделяет контроль паттерна от первого выстрела."
+    tooltip: "Точность на самой длинной части зажима."
     include: "4-й и последующие выстрелы спрея, винтовки."
+    scope: "Знаменатель — выстрелы серии с четвёртого и дальше. Показывает контроль на пике отдачи."
+    example: "900 выстрелов, 180 попали → 20.0%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-008"
@@ -606,14 +632,16 @@ metrics:
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-011"
-    name: "Headshot accuracy"
+    name: "Доля попаданий в голову среди всех попаданий"
     domain: "Точность"
     unit: "%"
     direction: "up"
     minSample: 30
     formula: "`HSA = head_hits / hits × 100`"
-    tooltip: "Доля попаданий в голову среди всех попаданий. Точнее, чем HS% по убийствам, потому что не зависит от добиваний."
+    tooltip: "Какая часть твоих попаданий пришлась в голову."
     exclude: "попадания из AWP (как у Leetify) — опциональный переключатель."
+    scope: "Знаменатель — все попадания по противнику за период, а не все выстрелы. Попадание в голову — hitgroup head."
+    example: "4 247 попаданий, 556 в голову → 13.1%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "ACC-012"
@@ -708,15 +736,17 @@ metrics:
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-001"
-    name: "Preaim (угол до появления)"
+    name: "Preaim: средний угол между прицелом и ближайшим врагом"
     domain: "Механика прицеливания"
     unit: "градусы"
     direction: "down"
     minSample: 40
     formula: "`PRE = median(angle(view_at_first_visible, vector_to_enemy_head))`"
-    tooltip: "Насколько прицел уже смотрел на голову врага, когда он появился. Меньше — лучше. Формула: медианный угол между направлением взгляда и вектором на голову в первый тик видимости."
+    tooltip: "Насколько твой прицел заранее смотрит туда, откуда появляется враг."
     include: "только первый тик видимости."
     exclude: "выбросы > 90° и энгейджменты без выстрела."
+    scope: "На каждом сэмпле (1 Гц), когда враг ближе 1500 юнитов, считается угол между направлением взгляда и направлением на него. Берётся медиана."
+    example: "Медиана 44° — прицел часто не там, где враг."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-002"
@@ -794,13 +824,15 @@ metrics:
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-009"
-    name: "Скорость флика"
+    name: "Доля выстрелов с включённым зумом (AUG/SG/AWP)"
     domain: "Механика прицеливания"
     unit: "°/с"
     direction: "up"
     minSample: 30
     formula: "`median(Δangle / Δt)` на интервале до первого попадания"
-    tooltip: "Угловая скорость доводки. Высокая скорость при низкой точности — рывки; низкая при высокой — плавность."
+    tooltip: "Как часто ты стреляешь в зуме из оружия, у которого он есть."
+    scope: "Только выстрелы из оружия с зумом: AWP, SSG 08, SCAR-20, G3SG1, AUG, SG 553."
+    example: "1 000 выстрелов с зумом, 491 в зуме → 49.1%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-010"
@@ -824,24 +856,28 @@ metrics:
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-012"
-    name: "Качество контр-стрейфинга"
+    name: "Доля выстрелов на почти полной остановке (контр-стрейфинг)"
     domain: "Механика прицеливания"
     unit: "%"
     direction: "up"
     minSample: 60
     formula: "`good_shots / rifle_shots × 100`, good = скорость < 34% максимальной"
-    tooltip: "Доля выстрелов из винтовки, сделанных почти на месте (< 34% скорости). 34% — порог потери точности."
+    tooltip: "Как часто ты стреляешь, остановившись, а не на бегу."
     exclude: "выстрелы в приседе, пистолеты, дробовики."
+    scope: "Выстрел считается «на остановке», если горизонтальная скорость в момент выстрела ниже 34% от максимума (85 юнитов/с)."
+    example: "21 234 выстрела, 19 980 на остановке → 94.1%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-013"
-    name: "Скорость в момент выстрела"
+    name: "Средняя скорость в момент выстрела (% от максимума)"
     domain: "Механика прицеливания"
     unit: "% от max"
     direction: "down"
     minSample: 60
     formula: "`median(speed_at_shot / max_speed × 100)`"
-    tooltip: "Насколько вы движетесь в момент выстрела. Ниже — точнее, но слишком низко может означать пассивность."
+    tooltip: "Насколько быстро ты двигаешься в момент выстрела."
+    scope: "Горизонтальная скорость в момент каждого выстрела делится на 250 юнитов/с и усредняется."
+    example: "Средняя скорость 28 юнитов/с → 11.2%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-014"
@@ -865,23 +901,27 @@ metrics:
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-016"
-    name: "Длина серии"
+    name: "Максимальная длина серии выстрелов"
     domain: "Механика прицеливания"
     unit: "выстрелов"
     direction: "neutral"
     minSample: 30
     formula: "`median(consecutive_shots)`, распределение 1–2 / 3–5 / 6–10 / 11+"
-    tooltip: "Сколько выстрелов в типичной серии. Короткие серии — тэппинг, длинные — спрей."
+    tooltip: "Самая длинная очередь, которую ты выдал."
+    scope: "Максимальный номер выстрела в серии без паузы длиннее 8 тиков."
+    example: "Самая длинная серия за период — 30 выстрелов."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-017"
-    name: "Время между выстрелами"
+    name: "Средний интервал между выстрелами в серии"
     domain: "Механика прицеливания"
     unit: "мс"
     direction: "neutral"
     minSample: 100
     formula: "`median(t_shot_next − t_shot)`"
-    tooltip: "Темп стрельбы. Сравнивается с темпом оружия: слишком редкий — потери, слишком частый — отдача."
+    tooltip: "Как быстро ты стреляешь внутри очереди."
+    scope: "Медиана пауз между соседними выстрелами внутри серии, в миллисекундах."
+    example: "78 мс — примерно 13 выстрелов в секунду."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-018"
@@ -991,7 +1031,9 @@ metrics:
     direction: "up"
     minSample: 40
     formula: "`hits_after_miss / shots_after_miss × 100`"
-    tooltip: "Как вы восстанавливаетесь после промаха. Показывает устойчивость прицела."
+    tooltip: "Насколько точны выстрелы после того, как первый ушёл в молоко."
+    scope: "Знаменатель — выстрелы серии со второго и дальше. Показывает, исправляешься ли ты после промаха."
+    example: "8 000 выстрелов, 1 216 попали → 15.2%."
     sources: ["Leetify", "CSStats", "Refrag", "CSRep", "Scope"]
     version: 1
   - id: "AIM-029"
@@ -1181,7 +1223,9 @@ metrics:
     direction: "neutral"
     minSample: 30
     formula: "`pistol_kills / kills × 100`"
-    tooltip: "Какая часть убийств сделана пистолетами. Высокая доля — много пистолетных раундов или стиль."
+    tooltip: "Какая часть убийств сделана пистолетами."
+    scope: "Все твои убийства за период; пистолеты — glock, USP, P2000, P250, Desert Eagle, R8, Dual Berettas, Tec-9, Five-SeveN, CZ75."
+    example: "121 убийство, 20 из пистолетов → 16.5%."
     sources: ["CSStats", "Scope"]
     version: 1
   - id: "WPN-018"
@@ -1195,13 +1239,15 @@ metrics:
     sources: ["CSStats", "Scope"]
     version: 1
   - id: "WPN-019"
-    name: "Доля убийств из SMG"
+    name: "Доля убийств из пистолетов-пулемётов (SMG)"
     domain: "Оружие"
     unit: "%"
     direction: "neutral"
     minSample: 30
     formula: "`smg_kills / kills × 100`"
-    tooltip: "Доля убийств из SMG. Часто связана с анти-эко и агрессией."
+    tooltip: "Какая часть убийств сделана SMG."
+    scope: "Все убийства; SMG — MP9, MP7, MP5-SD, UMP-45, P90, PP-Bizon, MAC-10."
+    example: "121 убийство, 20 из SMG → 16.5%."
     sources: ["CSStats", "Scope"]
     version: 1
   - id: "WPN-020"
@@ -1225,33 +1271,39 @@ metrics:
     sources: ["CSStats", "Scope"]
     version: 1
   - id: "WPN-022"
-    name: "Убийства на 100 выстрелов"
+    name: "Убийств на 100 выстрелов"
     domain: "Оружие"
     unit: "убийств/100"
     direction: "up"
     minSample: 100
     formula: "`K_w / shots_w × 100`"
-    tooltip: "Сколько убийств приносит сотня выстрелов. Интегральная эффективность оружия."
+    tooltip: "Сколько убийств приносит каждая сотня выстрелов."
+    scope: "Убийства делятся на выстрелы и умножаются на 100. Учитываются все выстрелы, включая промахи."
+    example: "121 убийство / 21 234 выстрела × 100 → 0.57 на 100. При стрельбе в воздух падает."
     sources: ["CSStats", "Scope"]
     version: 1
   - id: "WPN-023"
-    name: "Попадания в голову оружием"
+    name: "Доля попаданий в голову среди попаданий (по урону)"
     domain: "Оружие"
     unit: "% попаданий"
     direction: "up"
     minSample: 30
     formula: "`head_hits_w / hits_w × 100`"
-    tooltip: "Доля попаданий в голову конкретным оружием. Для AK и Deagle особенно показательна."
+    tooltip: "Какая часть попаданий пришлась в голову."
+    scope: "Попадания в голову делятся на все попадания по противнику за период."
+    example: "4 247 попаданий, 497 в голову → 11.7%."
     sources: ["CSStats", "Scope"]
     version: 1
   - id: "WPN-024"
-    name: "Серии из 3+ выстрелов оружием"
+    name: "Серии из 3+ выстрелов (спреи)"
     domain: "Оружие"
     unit: "шт."
     direction: "neutral"
     minSample: 20
     formula: "`N(sprays_w)`"
-    tooltip: "Сколько длинных серий сделано оружием. Показывает, где вы спреите, а где тэпаете."
+    tooltip: "Сколько раундов ты стрелял очередями от трёх выстрелов."
+    scope: "Считаются раунды, где у тебя была серия из трёх и более выстрелов подряд (пауза ≤ 8 тиков)."
+    example: "160 раундов, 84 раунда со спреем."
     sources: ["CSStats", "Scope"]
     version: 1
   - id: "WPN-025"
@@ -1666,13 +1718,15 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats", "Refrag"]
     version: 1
   - id: "ECO-001"
-    name: "Стоимость экипировки на старте раунда"
+    name: "Стоимость экипировки на старте раунда (медиана)"
     domain: "Экономика"
     unit: "$"
     direction: "neutral"
     minSample: 10
     formula: "`median(equip_value_start)`; командный — `Σ` пяти игроков"
-    tooltip: "Сколько денег вложено в снаряжение на старте раунда. Основа классификации закупа."
+    tooltip: "Сколько в среднем стоит твой закуп на старте раунда."
+    scope: "Стоимость снаряжения (оружие, броня, гранаты) в первом сэмпле раунда. Медиана по всем раундам периода."
+    example: "Медиана $3 563 — типичный закуп между форсом и фуллом."
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "ECO-002"
@@ -1706,13 +1760,15 @@ metrics:
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "ECO-005"
-    name: "Доля фулл-баев"
+    name: "Доля раундов с фулл-баем"
     domain: "Экономика"
     unit: "%"
     direction: "up"
     minSample: 10
     formula: "`full_buy_rounds / rounds × 100`"
-    tooltip: "Как часто команда может позволить полный закуп. Низкое — экономика в минусе."
+    tooltip: "Как часто ты закупаешься полностью."
+    scope: "Раунд считается фулл-баем, если экипировка на старте ≥ $3 800. Пистолетные раунды не входят."
+    example: "160 раундов, 58 фулл-баев → 36.3%."
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "ECO-006"
@@ -1732,7 +1788,9 @@ metrics:
     direction: "up"
     minSample: 10
     formula: "`pistol_wins / pistol_rounds × 100`"
-    tooltip: "Победы в пистолетных. Дают экономический старт половины."
+    tooltip: "Как часто твоя команда берёт пистолетный раунд."
+    scope: "Только раунды 1 и 13 (первые раунды половин). Победы делятся на число таких раундов."
+    example: "16 пистолетных раундов, 10 побед → 62.5%."
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "ECO-008"
@@ -1756,13 +1814,15 @@ metrics:
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "ECO-010"
-    name: "Win rate фулл-баев"
+    name: "Win rate раундов с фулл-баем"
     domain: "Экономика"
     unit: "%"
     direction: "up"
     minSample: 20
     formula: "`full_wins / full_rounds × 100`"
-    tooltip: "Победы при полном закупе. Базовый уровень реализуемости экономики."
+    tooltip: "Как часто ты выигрываешь, когда закупился полностью."
+    scope: "Победы в раундах с экипировкой ≥ $3 800 делятся на число таких раундов."
+    example: "58 фулл-баев, 32 победы → 55.2%."
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "ECO-011"
@@ -1866,23 +1926,27 @@ metrics:
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "ENT-001"
-    name: "Попытки опенинга"
+    name: "Опенинги: число первых дуэлей раунда"
     domain: "Опенинг-дуэли"
     unit: "шт. и % раундов"
     direction: "neutral"
     minSample: 30
     formula: "`N(opening_duels)`, `N / ΣR × 100`"
-    tooltip: "Сколько раз вы участвовали в первом килле раунда. Показывает агрессию и роль."
+    tooltip: "Сколько раз за период ты участвовал в первой дуэли раунда."
+    scope: "Каждый раунд даёт ровно один опенинг — первое убийство раунда. Если первым умер ты, это тоже опенинг (поражение)."
+    example: "160 раундов, 45 опенингов → 28.1% раундов начинались с твоей дуэли."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "ENT-002"
-    name: "Победы в опенинге"
+    name: "Победы в опенингах: первые киллы твоей команды"
     domain: "Опенинг-дуэли"
     unit: "шт."
     direction: "up"
     minSample: 20
     formula: "`N(opening_wins)`"
-    tooltip: "Первые киллы раунда. Один из самых сильных предикторов победы."
+    tooltip: "Сколько первых дуэлей забрала твоя команда."
+    scope: "Опенинг выигран, если первый килл раунда сделал игрок твоей команды — не обязательно ты."
+    example: "45 опенингов, 24 выиграно → 53.3%."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "ENT-003"
@@ -1896,13 +1960,15 @@ metrics:
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "ENT-004"
-    name: "Win rate опенингов"
+    name: "Win rate опенингов: доля выигранных первых дуэлей"
     domain: "Опенинг-дуэли"
     unit: "%"
     direction: "up"
     minSample: 20
     formula: "`opening_wins / opening_duels × 100`"
-    tooltip: "Доля выигранных первых дуэлей. 50% — паритет, 60%+ — сильный энтри."
+    tooltip: "Как часто твоя команда забирает первую дуэль раунда."
+    scope: "Победы в опенингах делятся на все опенинги за период (и выигранные, и проигранные)."
+    example: "24 из 45 → 53.3%."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "ENT-005"
@@ -2096,23 +2162,27 @@ metrics:
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "TRD-004"
-    name: "Трейд-киллы"
+    name: "Трейд-киллы: сколько раз ты обменял смерть союзника"
     domain: "Трейды"
     unit: "шт."
     direction: "up"
     minSample: 20
     formula: "`Σ trade_kills`"
-    tooltip: "Убийства, обменявшие смерть союзника в течение 4 с."
+    tooltip: "Сколько твоих убийств были обменом смерти союзника."
+    scope: "Трейд — убийство в течение 4 секунд (256 тиков) после смерти союзника, причём жертвой становится именно его убийца."
+    example: "121 убийство, 17 из них трейды."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "TRD-005"
-    name: "Доля трейд-киллов"
+    name: "Доля трейд-киллов среди всех убийств"
     domain: "Трейды"
     unit: "%"
     direction: "up"
     minSample: 30
     formula: "`trade_kills / kills × 100`"
-    tooltip: "Какая часть убийств — обмены. Высокая доля у саппортов и вторых номеров."
+    tooltip: "Какая часть убийств — обмен смерти союзника."
+    scope: "Трейд-киллы делятся на все твои убийства за период."
+    example: "17 из 121 → 14.0%."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "TRD-006"
@@ -2266,23 +2336,27 @@ metrics:
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "CLT-001"
-    name: "Попытки клатча"
+    name: "Клатчи: сколько раз ты оставался последним живым"
     domain: "Клатчи"
     unit: "шт. и % раундов"
     direction: "neutral"
     minSample: 15
     formula: "`N(rounds, где вы последний живой)`, `%`"
-    tooltip: "Сколько раз вы оставались последним живым. Клатч-попытка, а не победа."
+    tooltip: "Сколько раундов ты доигрывал в одиночку."
+    scope: "Клатч-попытка — момент, когда на твоей стороне не осталось никого, кроме тебя. Один раунд даёт не больше одной попытки."
+    example: "160 раундов, 8 клатчей."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "CLT-002"
-    name: "Победы в клатчах"
+    name: "Победы в клатчах: сколько таких раундов выиграно"
     domain: "Клатчи"
     unit: "шт."
     direction: "up"
     minSample: 10
     formula: "`Σ clutch_wins`"
-    tooltip: "Выигранные раунды в одиночку против 1+."
+    tooltip: "Сколько клатчей ты закрыл."
+    scope: "Клатч выигран, если твоя сторона выиграла раунд, оставшись с одним игроком."
+    example: "8 клатчей, 3 победы."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "CLT-003"
@@ -2296,13 +2370,15 @@ metrics:
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "CLT-004"
-    name: "Win rate клатчей"
+    name: "Win rate клатчей: доля выигранных раундов «последний живой»"
     domain: "Клатчи"
     unit: "%"
     direction: "up"
     minSample: 10
     formula: "`wins / attempts × 100`"
-    tooltip: "Доля выигранных клатчей всех размеров. Средний уровень сильно зависит от 1v1."
+    tooltip: "Как часто ты выигрываешь раунд, оставшись один."
+    scope: "Победы в клатчах делятся на все клатч-попытки периода."
+    example: "3 из 8 → 37.5%."
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "CLT-005"
@@ -2466,23 +2542,27 @@ metrics:
     sources: ["Leetify", "CSStats", "Scope", "Refrag"]
     version: 1
   - id: "MLT-001"
-    name: "Раунды с 2 убийствами"
+    name: "Раунды с двумя убийствами (2K)"
     domain: "Мультикиллы"
     unit: "шт. и %"
     direction: "up"
     minSample: 30
     formula: "`N(rounds, где 2 kills)`, `%`"
-    tooltip: "Двухкилловые раунды. Базовый уровень импакта."
+    tooltip: "Сколько раундов ты закончил с двумя фрагами."
+    scope: "Считаются раунды, где ты сделал ровно два убийства. Раунды с 3+ попадают в свои метрики."
+    example: "160 раундов, 22 раунда с 2K."
     sources: ["Leetify", "CSStats", "Scope", "Tracker"]
     version: 1
   - id: "MLT-002"
-    name: "Раунды с 3 убийствами"
+    name: "Раунды с тремя убийствами (3K)"
     domain: "Мультикиллы"
     unit: "шт. и %"
     direction: "up"
     minSample: 30
     formula: "`N(rounds, где 3 kills)`, `%`"
-    tooltip: "Трипл-киллы. Обычно решают раунд."
+    tooltip: "Сколько раундов ты закончил с тремя фрагами."
+    scope: "Считаются раунды, где ты сделал ровно три убийства."
+    example: "160 раундов, 7 раундов с 3K."
     sources: ["Leetify", "CSStats", "Scope", "Tracker"]
     version: 1
   - id: "MLT-003"
@@ -2496,23 +2576,27 @@ metrics:
     sources: ["Leetify", "CSStats", "Scope", "Tracker"]
     version: 1
   - id: "MLT-004"
-    name: "Эйсы (5K)"
+    name: "Эйсы: раунды с пятью убийствами (5K)"
     domain: "Мультикиллы"
     unit: "шт. и %"
     direction: "up"
     minSample: 30
     formula: "`N(rounds, где 5 kills)`, `%`"
-    tooltip: "Раунды с пятью убийствами. Редкое событие, зависит от длины раунда."
+    tooltip: "Сколько раз ты делал эйс."
+    scope: "Считаются раунды, где ты убил всех пятерых противников."
+    example: "160 раундов, 0 эйсов."
     sources: ["Leetify", "CSStats", "Scope", "Tracker"]
     version: 1
   - id: "MLT-005"
-    name: "Мультикилл-раунды"
+    name: "Мультикилл-раунды: раунды с 2+ убийствами"
     domain: "Мультикиллы"
     unit: "шт. и %"
     direction: "up"
     minSample: 30
     formula: "`N(rounds, где ≥2 kills)`, `%`"
-    tooltip: "Раунды с двумя и более убийствами. Сумма 2K–5K."
+    tooltip: "Сколько раундов ты сделал больше одного фрага."
+    scope: "Сумма раундов с 2K, 3K, 4K и 5K."
+    example: "22 + 7 + 0 + 0 = 29 раундов."
     sources: ["Leetify", "CSStats", "Scope", "Tracker"]
     version: 1
   - id: "MLT-006"
@@ -2676,13 +2760,15 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "POS-007"
-    name: "Покрытие карты"
+    name: "Покрытие карты: сколько разных зон ты посетил"
     domain: "Позиционирование"
     unit: "зон"
     direction: "up"
     minSample: 10
     formula: "`N(уникальные зоны с presence ≥ 1%)`"
-    tooltip: "Сколько разных зон вы используете. Низкое — предсказуемость."
+    tooltip: "Насколько разнообразно ты используешь пространство карты."
+    scope: "Карта делится на клетки 512×512 юнитов; считается число уникальных клеток за матч, в среднем по периоду."
+    example: "8 матчей → в среднем 44.8 клетки."
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "POS-008"
@@ -2716,23 +2802,27 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "POS-011"
-    name: "Дистанция до ближайшего союзника"
+    name: "Медианная дистанция до ближайшего союзника"
     domain: "Позиционирование"
     unit: "юниты"
     direction: "down"
     minSample: 200
     formula: "`median(distance_to_nearest_teammate)`"
-    tooltip: "Насколько вы близко к команде. Большая дистанция — риск необменянной смерти."
+    tooltip: "Насколько близко ты играешь к своей команде."
+    scope: "На каждом сэмпле (1 Гц) считается расстояние до ближайшего живого союзника; берётся медиана по всем сэмплам."
+    example: "Медиана 261 юнит — ты обычно в 5 метрах от союзника."
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "POS-012"
-    name: "Изоляция"
+    name: "Изоляция: доля времени дальше 1200 юнитов от союзников"
     domain: "Позиционирование"
     unit: "% тиков"
     direction: "down"
     minSample: 200
     formula: "`N(ticks без союзника в 800 юнитах) / ticks × 100`"
-    tooltip: "Доля времени в одиночестве вне радиуса поддержки."
+    tooltip: "Как часто ты оказываешься один, без поддержки."
+    scope: "Доля сэмплов, где ближайший союзник дальше 1200 юнитов (≈23 м)."
+    example: "12 000 сэмплов, 1 030 в изоляции → 8.6%."
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "POS-013"
@@ -2866,33 +2956,39 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "MOV-001"
-    name: "Пройденная дистанция"
+    name: "Пройденная дистанция за раунд (игровые юниты)"
     domain: "Движение"
     unit: "юниты/раунд"
     direction: "neutral"
     minSample: 20
     formula: "`Σdistance / ΣR`"
-    tooltip: "Сколько вы двигаетесь за раунд. Слишком мало — статичность, слишком много — лишний шум."
+    tooltip: "Сколько ты пробегаешь за один раунд."
+    scope: "Сумма перемещений между сэмплами позиции (1 раз в секунду) делится на число раундов. Юнит ≈ 1.9 см, вся карта ≈ 4 000–5 000 юнитов."
+    example: "160 раундов, 1.27 млн юнитов → 7 973 за раунд."
     sources: ["Refrag", "CSStats"]
     version: 1
   - id: "MOV-002"
-    name: "Время в движении"
+    name: "Доля времени в движении"
     domain: "Движение"
     unit: "% тиков"
     direction: "neutral"
     minSample: 300
     formula: "`N(ticks со скоростью > 34% max) / ticks × 100`"
-    tooltip: "Доля времени в движении. Сопоставляется с таймингом контактов."
+    tooltip: "Какую часть раунда ты двигаешься, а не стоишь."
+    scope: "Доля сэмплов (1 Гц), где горизонтальная скорость выше 5 юнитов/с. Стояние и присед не считаются."
+    example: "12 000 сэмплов, 4 950 в движении → 41.3%."
     sources: ["Refrag", "CSStats"]
     version: 1
   - id: "MOV-003"
-    name: "Средняя скорость"
+    name: "Средняя скорость передвижения"
     domain: "Движение"
     unit: "юниты/с"
     direction: "neutral"
     minSample: 300
     formula: "`median(speed)`"
-    tooltip: "Типичная скорость. Ниже при ходьбе и приседах."
+    tooltip: "С какой средней скоростью ты перемещаешься по карте."
+    scope: "Сумма пройденной дистанции делится на число сэмплов — средняя скорость в юнитах/с."
+    example: "1.27 млн юнитов / 15 000 с ≈ 83 юнита/с."
     sources: ["Refrag", "CSStats"]
     version: 1
   - id: "MOV-004"
@@ -2906,13 +3002,15 @@ metrics:
     sources: ["Refrag", "CSStats"]
     version: 1
   - id: "MOV-005"
-    name: "Доля ходьбы (walk)"
+    name: "Доля времени на тихом шаге (walk)"
     domain: "Движение"
     unit: "%"
     direction: "neutral"
     minSample: 300
     formula: "`N(ticks с walk) / ticks × 100`"
-    tooltip: "Сколько вы ходите на Shift. Высокая доля — тихо, но медленно."
+    tooltip: "Как часто ты ходишь тихо, чтобы не выдавать позицию."
+    scope: "Доля сэмплов, где включён тихий шаг. Бег и стояние не входят."
+    example: "12 000 сэмплов, 760 на walk → 6.3%."
     sources: ["Refrag", "CSStats"]
     version: 1
   - id: "MOV-006"
@@ -3066,13 +3164,15 @@ metrics:
     sources: ["Refrag", "CSStats"]
     version: 1
   - id: "OBJ-001"
-    name: "Закладки"
+    name: "Закладки: сколько раз твоя команда поставила бомбу"
     domain: "Объектив"
     unit: "шт."
     direction: "up"
     minSample: 10
     formula: "`Σplants`"
-    tooltip: "Сколько раз вы ставили бомбу."
+    tooltip: "Сколько закладок сделала твоя команда."
+    scope: "Считаются только закладки игроков твоей команды; закладки соперника не входят."
+    example: "160 раундов, 50 закладок твоей команды."
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "OBJ-002"
@@ -3096,13 +3196,15 @@ metrics:
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "OBJ-004"
-    name: "Дефьюзы"
+    name: "Дефьюзы: сколько раз твоя команда разминировала"
     domain: "Объектив"
     unit: "шт."
     direction: "up"
     minSample: 10
     formula: "`Σdefuses`"
-    tooltip: "Сколько бомб вы обезвредили."
+    tooltip: "Сколько раз твоя команда разминировала бомбу."
+    scope: "Только успешные дефьюзы игроков твоей команды."
+    example: "160 раундов, 7 дефьюзов."
     sources: ["Scope", "CSStats"]
     version: 1
   - id: "OBJ-005"
@@ -3391,18 +3493,20 @@ metrics:
     unit: "рейтинг"
     direction: "up"
     minSample: 100
-    formula: "`KillRating = KPR / 0.679`\n  `SurvivalRating = (выжил_раундов / R) / 0.317`\n  `RWMK = (1K + 4·2K + 9·3K + 16·4K + 25·5K) / R / 1.277`\n  `Rating = (KillRating + 0.7·SurvivalRating + RWMK) / 2.7`"
+    formula: "`KillRating = KPR / 0.679`\r\n  `SurvivalRating = (выжил_раундов / R) / 0.317`\r\n  `RWMK = (1K + 4·2K + 9·3K + 16·4K + 25·5K) / R / 1.277`\r\n  `Rating = (KillRating + 0.7·SurvivalRating + RWMK) / 2.7`"
     tooltip: "Старый рейтинг HLTV 1.0. Формула собрана реверс-инжинирингом и может отличаться от оригинала на сотые. Нормирован так, что 1.00 — средний уровень."
     sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
     version: 1
   - id: "IMP-002"
-    name: "HLTV Rating 2.0 (reference)"
+    name: "HLTV-подобный рейтинг за матч (2.0)"
     domain: "Рейтинги"
     unit: "рейтинг"
     direction: "up"
     minSample: 100
-    formula: "`Rating2 = 0.0073·KAST + 0.3591·KPR − 0.5329·DPR + 0.2372·Impact + 0.0032·ADR + 0.1587`\n  где `Impact = 2.13·KPR + 0.42·APR − 0.41`;\n  KAST — в процентах (0–100), ADR — в HP, KPR/DPR/APR — в долях."
-    tooltip: "Восстановленная линейная формула HLTV 2.0 (R²≈0,995). Включает KAST, KPR, DPR, Impact и ADR. 1.00 — средний уровень. HLTV формулу не публиковал."
+    formula: "`Rating2 = 0.0073·KAST + 0.3591·KPR − 0.5329·DPR + 0.2372·Impact + 0.0032·ADR + 0.1587`\r\n  где `Impact = 2.13·KPR + 0.42·APR − 0.41`;\r\n  KAST — в процентах (0–100), ADR — в HP, KPR/DPR/APR — в долях."
+    tooltip: "Классический рейтинг 2.0, пересчитанный из демок."
+    scope: "Считается по формуле HLTV 2.0 из KAST, убийств, смертей и ADR за каждый матч, затем взвешивается по раундам."
+    example: "KAST 77%, 0.95 K/D, ADR 80 → около 1.05."
     sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
     version: 1
   - id: "IMP-003"
@@ -3441,7 +3545,7 @@ metrics:
     unit: "± очки"
     direction: "up"
     minSample: 50
-    formula: "1. До раунда: `WP0 = f(eco_band_CT, eco_band_T)` из исторической таблицы HLTV.\n  2. Каждый килл: `ΔWP = WP_after − WP_before`; киллы в пределах 4 с объединяются в цепочку с линейным весом `w = 1 − Δt/4`.\n  3. Награда `R = ΔWP · w` делится: убийца 35%, дамагеры 30%, флеш-ассист 15%, обменянный 20%; отсутствующие доли масштабируются до 100%.\n  4. Смерть списывает `−ΔWP` только умершему.\n  5. Сейв: награда пропорциональна стоимости сохранённого и приросту WP следующего раунда, кап — награда победителей за предыдущий раунд.\n  6. Рейтинг = среднее по раундам; сумма по игрокам = 0."
+    formula: "1. До раунда: `WP0 = f(eco_band_CT, eco_band_T)` из исторической таблицы HLTV.\r\n  2. Каждый килл: `ΔWP = WP_after − WP_before`; киллы в пределах 4 с объединяются в цепочку с линейным весом `w = 1 − Δt/4`.\r\n  3. Награда `R = ΔWP · w` делится: убийца 35%, дамагеры 30%, флеш-ассист 15%, обменянный 20%; отсутствующие доли масштабируются до 100%.\r\n  4. Смерть списывает `−ΔWP` только умершему.\r\n  5. Сейв: награда пропорциональна стоимости сохранённого и приросту WP следующего раунда, кап — награда победителей за предыдущий раунд.\r\n  6. Рейтинг = среднее по раундам; сумма по игрокам = 0."
     tooltip: "Zero-sum рейтинг влияния на вероятность победы. Учитывает экономику, число живых, цепочки киллов, сейвы. Награда за килл делится между участниками. Среднее по раундам."
     sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
     version: 1
@@ -3481,39 +3585,47 @@ metrics:
     unit: "0–100"
     direction: "up"
     minSample: 200
-    formula: "`z_p = (x_p − μ_p(rank, map, season)) / σ_p`\n  `z'_p = z_p · n_p / (n_p + 50)`\n  `G = 50 + 10 · Σ(w_p · z'_p) / Σw_p`\n  Веса: Aim 0,30; Utility 0,15; Positioning 0,20; Opening 0,15; Clutch 0,10; Survival 0,10."
+    formula: "`z_p = (x_p − μ_p(rank, map, season)) / σ_p`\r\n  `z'_p = z_p · n_p / (n_p + 50)`\r\n  `G = 50 + 10 · Σ(w_p · z'_p) / Σw_p`\r\n  Веса: Aim 0,30; Utility 0,15; Positioning 0,20; Opening 0,15; Clutch 0,10; Survival 0,10."
     tooltip: "Собственный композит. Каждая метрика переводится в z-оценку относительно вашего ранга, карты и сезона, сжимается по выборке и взвешивается. 50 — средний уровень, 100 — топ. Формула полностью открыта."
+    scope: "шесть компонентов с фиксированными весами: Aim 0.30, Utility 0.15, Positioning 0.20, Opening 0.15, Clutch 0.10, Survival 0.10. Каждый компонент — z-оценка относительно твоего ранга, карты и сезона, сжатая по размеру выборки n/(n+50). Пока не все шесть компонентов посчитаны, итог отдаётся как N/A."
+    example: "Aim 60 (z=+1), остальные пять на среднем (z=0) → G = 50 + 10 × (0.30 × 1) = 53."
     sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
     version: 1
   - id: "IMP-011"
-    name: "Aim Rating"
+    name: "Aim Rating — сводная оценка прицеливания (0–100)"
     domain: "Рейтинги"
     unit: "0–100"
     direction: "up"
     minSample: 150
-    formula: "`50 + 10·mean(z(ACC-SPT, AIM-PRE, AIM-CHP, AIM-TTD, AIM-TTS, ACC-FB, ACC-SPR, AIM-012))`"
-    tooltip: "Композит аима. Включает точность по видимому, предаим, коррекцию, TTD, TTS, первый выстрел, спрей и контр-стрейф. Не включает клиллы и экономику."
+    formula: "`50 + 10 · mean(z(ACC-003, ACC-011, AIM-012, AIM-028))`"
+    tooltip: "Сводная оценка прицеливания по четырём измеримым компонентам, нормированная на игроков из твоих демок."
+    scope: "Четыре компонента: точность (ACC-003), попадания в голову (ACC-011), доля выстрелов на остановке (AIM-012) и точность в зажиме (AIM-028). Каждый переводится в z-оценку относительно всех игроков из разобранных демок; итог = 50 + 10 × среднее z. 50 — средний игрок выборки, 60 — на одно стандартное отклонение лучше."
+    example: "Точность 20.0%, хедшоты 13.1%, стоп 94.1%, зажим 15.2% → z ≈ [−0.3, −0.6, +0.9, −0.2], среднее −0.05 → 49.5."
     sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
     version: 1
   - id: "IMP-012"
-    name: "Utility Rating"
+    name: "Utility Rating — сводная оценка ютилити (0–100)"
     domain: "Рейтинги"
     unit: "0–100"
     direction: "up"
     minSample: 100
-    formula: "`UTL-038` (геометрическое среднее качества и количества)"
-    tooltip: "Композит ютилити: качество × количество. Чтобы получить высокий рейтинг, нужно и бросать много, и бросать полезно."
+    formula: "`50 + 10 · mean(z(флешек на раунд, смоков на раунд, урон HE на раунд, урон огнём на раунд))`"
+    tooltip: "Сводная оценка ютилити: сколько гранат ты используешь и сколько ими наносишь."
+    scope: "Четыре компонента на раунд: брошено флешек, брошено смоков, урон HE, урон огнём. Каждый — z-оценка среди игроков из демок; итог = 50 + 10 × среднее z. Это две оси сразу: сколько гранат и сколько ими нанесено."
+    example: "0.9 флешки, 1.1 смока, 6 урона HE, 4 урона огнём → z ≈ [0.2, 0.4, −0.1, 0.1] → 51.5."
     alias: "UTL-038 (одна метрика, отображается и в блоке рейтингов)"
     sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
     version: 1
   - id: "IMP-013"
-    name: "Positioning Rating"
+    name: "Positioning Rating — сводная оценка позиционирования (0–100)"
     domain: "Рейтинги"
     unit: "0–100"
     direction: "up"
     minSample: 100
-    formula: "`50 + 10·mean(z(POS-018, POS-019, POS-011, POS-013, TRD-008, ROUNDS_SURVIVED))`"
-    tooltip: "Оценка позиционирования: удержание, ретейки, близость к команде, кроссфайр, обмены и выживание. Не оценивает «красоту"
+    formula: "`50 + 10 · mean(z(доля выживших раундов, трейд-киллы на раунд, −изоляция))`"
+    tooltip: "Сводная оценка позиционирования: выживание, поддержка трейдом и игра вместе с командой."
+    scope: "Три компонента: доля выживших раундов, трейд-киллы на раунд и изоляция (доля времени дальше 1200 юнитов от ближайшего союзника; меньше — лучше). z-оценки среди игроков из демок, итог = 50 + 10 × среднее z."
+    example: "Выжил 40%, 0.10 трейда на раунд, изоляция 8.6% → z ≈ [0.0, −0.2, +0.3] → 50.3."
     sources: ["Leetify", "HLTV", "CSDB", "Refrag", "CSRep", "Tracker"]
     version: 1
   - id: "IMP-014"
@@ -4088,13 +4200,15 @@ metrics:
     sources: ["Leetify", "Scope", "CSDB", "Tracker"]
     version: 1
   - id: "REC-003"
-    name: "Самое большое убийство"
+    name: "Рекорд: максимум убийств за один матч"
     domain: "Рекорды"
     unit: "шт."
     direction: "up"
     minSample: 10
     formula: "`max(kills_match)`"
-    tooltip: "Максимум убийств за матч."
+    tooltip: "Твой лучший матч по убийствам в этом периоде."
+    scope: "Максимум по матчам выбранного периода, не по всей карьере."
+    example: "Лучший матч периода — 23 убийства."
     sources: ["Leetify", "Scope", "CSDB", "Tracker"]
     version: 1
   - id: "REC-004"
@@ -4268,13 +4382,15 @@ metrics:
     sources: ["Leetify", "Scope", "CSDB", "Tracker"]
     version: 1
   - id: "SEA-001"
-    name: "Матчи сезона"
+    name: "Матчи выбранного сезона"
     domain: "Срезы"
     unit: "шт."
     direction: "neutral"
     minSample: 1
     formula: "`N(matches, season)`"
-    tooltip: "Объём выборки сезона. Малые сезоны сравнивать нельзя."
+    tooltip: "Сколько матчей попало в выбранный сезон."
+    scope: "Количество матчей в выбранном сезоне. Сезон определяется по дате матча: S1 27.09.2023–28.01.2025, S2 28.01.2025–14.07.2025, S3 14.07.2025–21.01.2026, S4 21.01.2026–06.07.2026, S5 с 06.07.2026."
+    example: "Все 8 матчей — ноябрь 2026 → Season 5."
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "SEA-002"
@@ -4468,23 +4584,27 @@ metrics:
     sources: ["Leetify", "Scope", "CSStats"]
     version: 1
   - id: "SES-001"
-    name: "Сессии"
+    name: "Сессии: число игровых сессий"
     domain: "Сессии"
     unit: "шт."
     direction: "neutral"
     minSample: 1
     formula: "`N(sessions)`"
-    tooltip: "Количество игровых сессий. Основа для анализа усталости."
+    tooltip: "Сколько отдельных игровых сессий было за период."
+    scope: "Сессия — матчи, между которыми меньше 2 часов. Пауза 2+ часа начинает новую сессию."
+    example: "8 матчей за 4 дня → 5 сессий."
     sources: ["Leetify", "Scope"]
     version: 1
   - id: "SES-002"
-    name: "Матчей в сессии"
+    name: "Медианное число матчей в сессии"
     domain: "Сессии"
     unit: "шт."
     direction: "neutral"
     minSample: 3
     formula: "`median(matches_per_session)`"
-    tooltip: "Сколько матчей в типичной сессии."
+    tooltip: "Сколько матчей ты обычно играешь за один заход."
+    scope: "Количество матчей в каждой сессии, затем медиана."
+    example: "Сессии по 1, 1, 2, 1, 3 → медиана 1."
     sources: ["Leetify", "Scope"]
     version: 1
   - id: "SES-003"
@@ -4639,13 +4759,15 @@ metrics:
     sources: ["Scope", "Leetify"]
     version: 1
   - id: "MIS-003"
-    name: "Смерти с гранатой"
+    name: "Смерти с гранатой в руке"
     domain: "Ошибки"
     unit: "шт."
     direction: "down"
     minSample: 10
     formula: "`N(death при grenade_in_hand)`"
-    tooltip: "Смерти, когда в руках была граната."
+    tooltip: "Сколько раз тебя убили, пока ты держал гранату."
+    scope: "Твои смерти, когда активным предметом в момент смерти была граната: флешка, дым, HE, молотов или деко́й."
+    example: "128 смертей, 3 с гранатой в руке."
     canon: "AIM-021 (там доля, здесь счётчик)"
     sources: ["Scope", "Leetify"]
     version: 1
@@ -4688,7 +4810,9 @@ metrics:
     direction: "down"
     minSample: 20
     formula: "`N(untraded_death)`"
-    tooltip: "Смерти без обмена. Пересекается с TRD-009, но здесь как счётчик ошибок."
+    tooltip: "Сколько твоих смертей команда не отыграла."
+    scope: "Смерти, после которых союзник не убил твоего убийцу в течение 4 секунд."
+    example: "128 смертей, 113 остались без обмена."
     canon: "TRD-009 (там доля, здесь счётчик)"
     sources: ["Scope", "Leetify"]
     version: 1
@@ -4815,13 +4939,15 @@ metrics:
     sources: ["Scope", "Leetify"]
     version: 1
   - id: "MIS-020"
-    name: "Смерть с полным комплектом ютилити"
+    name: "Смерти с двумя и более гранатами в инвентаре"
     domain: "Ошибки"
     unit: "шт."
     direction: "down"
     minSample: 20
     formula: "`N(death с ≥ 2 гранатами)`"
-    tooltip: "Смерти, не потратив ютилити. Деньги и потенциал потеряны."
+    tooltip: "Сколько раз ты умирал, не потратив гранаты."
+    scope: "Твои смерти, когда при себе оставалось ≥2 неиспользованных гранат."
+    example: "128 смертей, 34 с двумя и более гранатами."
     sources: ["Scope", "Leetify"]
     version: 1
   - id: "MIS-021"
@@ -5025,13 +5151,15 @@ metrics:
     sources: ["Scope", "Leetify", "CSRep", "CSDB"]
     version: 1
   - id: "HIG-001"
-    name: "Хайлайты"
+    name: "Хайлайты: число ярких эпизодов"
     domain: "Хайлайты"
     unit: "шт."
     direction: "up"
     minSample: 1
     formula: "`Σ highlights`"
-    tooltip: "Количество автоматически найденных ярких событий."
+    tooltip: "Сколько «клиповых"
+    scope: "Сумма: раунды с 3+ убийствами, убийства через стену, убийства без прицела и выигранные клатчи."
+    example: "29 мультикилл-раундов + 3 ваншота + 89 клатчей = 121."
     sources: ["Leetify", "Scope"]
     version: 1
   - id: "HIG-002"
@@ -5165,13 +5293,15 @@ metrics:
     sources: ["Leetify", "Scope"]
     version: 1
   - id: "HIG-015"
-    name: "Доля матчей с хайлайтом"
+    name: "Доля матчей хотя бы с одним хайлайтом"
     domain: "Хайлайты"
     unit: "%"
     direction: "up"
     minSample: 10
     formula: "`N(matches с highlight) / matches × 100`"
-    tooltip: "Как часто матч даёт хотя бы одно яркое событие."
+    tooltip: "В скольких матчах у тебя был хотя бы один яркий момент."
+    scope: "Матчи, где был хотя бы один эпизод из HIG-001, делятся на все матчи периода."
+    example: "8 из 8 матчей → 100%."
     sources: ["Leetify", "Scope"]
     version: 1
   - id: "LDR-001"

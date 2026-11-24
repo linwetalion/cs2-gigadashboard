@@ -25,10 +25,24 @@ export function TooltipDrawer({ metric, value, onClose }: Props) {
 
         <p className="drawer-lead">{metric.tooltip}</p>
 
+        {metric.scope && (
+          <section className="drawer-block">
+            <h3>Что именно считается</h3>
+            <p>{metric.scope}</p>
+          </section>
+        )}
+
         <section className="drawer-block">
           <h3>Формула</h3>
           <pre className="formula">{metric.formula}</pre>
         </section>
+
+        {metric.example && (
+          <section className="drawer-block">
+            <h3>Пример</h3>
+            <p>{metric.example}</p>
+          </section>
+        )}
 
         <section className="drawer-grid">
           <Field label="Единица" value={metric.unit} />
@@ -70,7 +84,7 @@ export function TooltipDrawer({ metric, value, onClose }: Props) {
         )}
 
         <footer className="drawer-foot">
-          <span className="muted">Источники: {metric.sources.join(", ")}</span>
+          <span className="muted">Референсы формул: {metric.sources.join(", ")}</span>
         </footer>
       </aside>
     </div>
@@ -94,6 +108,7 @@ export function MetricHint({ metric, value }: { metric: Metric; value?: MetricVa
         <span>{metric.id}</span>
       </div>
       <p>{metric.tooltip}</p>
+      {metric.scope && <p className="hint-scope">{metric.scope}</p>}
       <code>{metric.formula}</code>
       <div className="hint-foot">
         <span>{metric.unit}</span>
